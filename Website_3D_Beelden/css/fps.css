@@ -1,0 +1,63 @@
+img {
+    height: 90%;
+    width: 5%;
+}
+
+footer {
+    position: absolute;
+    bottom:0px;
+    text-align: center;
+    height: 8%;
+    width: 100%;
+    vertical-align: 60%;    
+
+    background-color: transparent;
+    background-color: #777;
+    color: white;
+}
+
+#translate span{
+    vertical-align: 60%;  
+    color:chartreuse;        
+}
+
+#tekst3 , #tekst2, #tekst1 {  /* alle span elementen */
+    vertical-align: 60%;  
+    color:chartreuse;         
+}
+
+.unselectable {
+    /* speciaal voor touch devices */
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    /* Safari */
+    -webkit-user-select: none;
+    /* Chrome */
+    -moz-user-select: none;
+    /* Firefox */
+    -ms-user-select: none;
+    /* Internet Explorer/Edge */
+}
+
+#reset {
+    position: absolute;
+    top: 70%;
+    left: 10%;
+    padding: 1vw 0;
+    margin: 0;
+    width: 6vw;
+    text-align: center;
+    font-size: 1.0vw;
+    border-radius: 50%;
+    background-color: #aaa;
+    /*  rgb(10, 163, 214);   */
+    border: 1.5vw solid darkblue;
+}
+
+#reset:hover {
+    cursor: pointer;
+}

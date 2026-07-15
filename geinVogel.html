@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>GeinVogels</title>
+	<meta charset="utf-8">
+</head>
+
+<body>
+	<script type="importmap">
+			{
+				"imports": {
+					"three": "./Website_3D_Beelden/build/three.module.js"			
+				}
+			}
+		</script>
+
+	<script type="module">
+		import * as THREE from 'three';
+		import { GLTFLoader } from './Website_3D_Beelden/jsm/loaders/GLTFLoader.js';				
+
+		//  "https://cdn.jsdelivr.net/npm/three@0.183.1/build/three.module.min.js"
+		// 'https://cdn.jsdelivr.net/npm/three@0.183.1/examples/jsm/loaders/GLTFLoader.js' 
+
+		let container;
+		let camera, scene, renderer;
+		let geinvogel;
+		const clones = [];
+		let r = +1; // richting roteren. 
+		let pos = 0; //  positie bewegende clone; 
+
+		init();
+
+		function init() {
+			container = document.createElement('div');
+			document.body.appendChild(container);
+
+			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+			camera.position.z = 50;
+
+			// scene
+			scene = new THREE.Scene();
+			// scene.background = new THREE.Color( 0xaaaaaa );   			
+
+			const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
+			directionalLight.position.set(-100, 100, 100)
+			scene.add(directionalLight);
+
+			scene.add(camera);
+
+			//model
+			laadModel();
+			myRenderer();
+			window.addEventListener('resize', onWindowResize);
+			animate();
+
+		}   // einde init
+
+		function myRenderer() {
+			renderer = new THREE.WebGLRenderer({ alpha: true }); // transparant.  
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			document.body.appendChild(renderer.domElement);
+		}
+
+		function onWindowResize() {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+		}
+
+		function animate() {
+			requestAnimationFrame(animate);
+			render();
+		}
+
+		function render() {
+			camera.lookAt(scene.position);
+
+			if (geinvogel != null) {
+				if (clones[0].rotation.z > 0.5)
+					r = -1;
+				if (clones[0].rotation.z < -0.5) {
+					// alert("pos: " + pos);
+					pos = pos + 1;
+					if (pos == 6)
+						pos = 0;
+					r = +1;
+				}
+
+				clones[0].rotation.z += 0.05 * r;
+				if (pos > 0)
+					clones[1].rotation.z = clones[0].rotation.z;
+				if (pos > 1)
+					clones[2].rotation.z = clones[0].rotation.z;
+					if (pos > 4)
+					clones[2].rotation.z = 0 ;
+				if (pos > 5)
+					clones[1].rotation.z = 0;				
+
+			}
+			renderer.render(scene, camera);
+		}
+		function laadModel() {
+			let pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+			let model = pad + 'geinVogel1.glb';
+			//  console.log("model: " + model)
+			const loader = new GLTFLoader();
+
+			loader.load(model, function (gltf) {
+				geinvogel = gltf.scene.children[0];
+
+
+
+				geinvogel.scale.multiplyScalar(1);  // 50 
+
+				for (let k = 0; k < 3; k++) {
+					clones[k] = geinvogel.clone();
+
+					clones[k].position.x = -15 +15 * k;
+					scene.add(clones[k]);
+				}
+
+				// scene.add(geinvogel);
+			},
+				// called while loading is progressing
+				function (xhr) {
+					;
+					// 	console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+				},
+				// called when loading has errors
+				function (error) {
+					console.log('O, 0 An error happened during loading');
+				}
+			);    // einde loader
+		}   // einde laadModel
+	</script>
+</body>
+
+</html>

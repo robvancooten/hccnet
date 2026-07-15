@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Multiple animated Drones.</title>
+    <meta charset="utf-8">
+    <!-- 
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        -->
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D models, Threejs, Ceramics">
+    <!--  https://sourceforge.net/projects/three-js.mirror/  -->
+    <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link href="css/menu.css" rel="stylesheet" type="text/css">
+    <style>
+        body {
+            background-color: #999;
+        }
+    </style>
+    <script defer src="./build/jquery.js"></script>
+</head>
+
+<body>
+    <div id="menu">
+        Hier komt het menu dynamisch.
+    </div>
+
+    <!-- Import maps polyfill -->
+    <!-- Remove this when import maps will be widely supported   -->
+    <script async src="https://cdn.jsdelivr.net/npm/es-module-shims@2.8.0/dist/es-module-shims.min.js"></script>
+
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+				}
+			}
+		</script>
+
+    <script type="module">
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+        import * as THREE from 'three';
+
+        import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+
+        /************     Variabelen:       ************/
+
+        let container, menu;
+        let controls;
+
+        let camera, scene, renderer;
+
+        let windowHalfX = window.innerWidth / 2;
+        let windowHalfY = window.innerHeight / 2;
+
+        let drone;
+        const clones = [];
+        const wings = [];
+
+        const aantalClones = 50;
+        let vleugelNummer = 0;
+
+        let richting = +1;
+        let ambientLight, pointLight;
+
+        init();
+        animate();
+
+        function init() {
+            maakMenu();
+            maakScene();
+            maakBelichting();
+            laadModellen();
+
+            maakRenderer();
+
+            startOrbitController();
+
+            window.addEventListener('resize', onWindowResize);
+            document.getElementsByTagName("div")[1].addEventListener("pointerdown", pressingDown, false);
+
+
+            function pressingDown(e) {
+                let plusnul = 0.001;
+                let minnul = -plusnul;
+
+                //    alert("YES klik"); 
+                if (richting == +1)
+                    richting = plusnul
+                else if (richting == plusnul)
+                    richting = -1
+                else if (richting == -1)
+                    richting = minnul
+                else richting = 1;
+
+                controls.autoRotateSpeed = richting * 10;  // controls.autoRotateSpeed;
+            }
+        }  // end init(); 
+
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function startOrbitController() {
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.addEventListener('change', render);
+
+            //controls.minPolarAngle = Math.PI * 0.35;     // tilt. , x as.            
+            // controls.maxPolarAngle = Math.PI * 0.6;
+
+            //   controls.minAzimuthAngle = -Math.PI * 0.25;      // rot y as.
+            //   controls.maxAzimuthAngle = Math.PI * 0.4;
+
+            //   controls.target.set(0, 10, 0);
+            controls.minDistance = 40.0;
+            controls.maxDistance = 800.0;
+
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = -10;   // 2 is default. 
+            controls.update();
+        }
+        function animate() {
+            requestAnimationFrame(animate);
+            // controls.autoRotateSpeed = -15;
+            controls.update();
+            render();
+        }
+
+        function render() {
+            if (drone != null) {
+                if (wings[aantalClones * 4 - 1] != null) {
+                    for (let k = 0; k < aantalClones * 4; k++) {
+                        wings[k].rotation.z += 0.5;
+                    }
+                }
+                /* camera heen en weer:   */
+                /* 
+                let rot = controls.getAzimuthalAngle();
+                //  console.log("controls.AzimuthAngle: " + rot);
+                if (rot > 3.0)
+                    r = +1;
+                if (rot < -3.0)
+                    r = -1;
+
+                    controls.autoRotateSpeed = r * 15;   */
+            }   // end render. 
+
+            renderer.render(scene, camera);
+        }
+
+        function maakRenderer() {
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+        }
+
+        function maakBelichting() {
+            let maal = 1;
+            ambientLight = new THREE.AmbientLight(0xcccccc, maal * 0.4);
+            scene.add(ambientLight);
+
+            pointLight = new THREE.PointLight(0xffffff, maal * 0.8);
+            //    camera.add(pointLight);
+
+            const kleur = 0xffffff;
+            const directionalLight = new THREE.DirectionalLight(kleur, 5.1);
+            directionalLight.position.set(100, 100, 100)
+            scene.add(directionalLight);
+            const directionalLight2 = new THREE.DirectionalLight(kleur, 5.1);
+            directionalLight2.position.set(-100, 100, 100)
+            //   scene.add(directionalLight2);
+        }
+
+        function maakPad() {
+            let p;
+            if (location.hostname == "localhost")
+                p = "./modellen/glb/"
+            else
+                p = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+            return p;
+        }
+
+        function laadModellen() {
+            let pad = maakPad();
+            let model = pad + 'drone_low.glb';
+            // console.log("model: " + model) ;  
+
+            const loader = new GLTFLoader();
+            loader.load(model, function (gltf) {
+                drone = gltf.scene.children[0];
+                drone.scale.multiplyScalar(0.2);  // 50    
+                //   scene.add(drone);                  
+
+                for (let k = 0; k < aantalClones; k++) {
+                    clones[k] = drone.clone();
+                    clones[k].position.x = Math.random() * 200 - 100;  //  maal 10*
+                    clones[k].position.y = Math.random() * 200 - 100;
+                    clones[k].position.z = Math.random() * 200 - 100;
+
+                    wings[vleugelNummer++] = clones[k].getObjectByName('Wing1');
+                    wings[vleugelNummer++] = clones[k].getObjectByName('Wing2');
+                    wings[vleugelNummer++] = clones[k].getObjectByName('Wing3');
+                    wings[vleugelNummer++] = clones[k].getObjectByName('Wing4');
+
+                    //   console.log(wings[0]);
+
+                    scene.add(clones[k]);
+                }
+                vleugelNummer = 0;
+                // alert(wings[0]);
+            },
+                // called while loading is progressing
+                function onProgress(xhr) {
+                    // console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                // called when loading has errors
+                function onError(error) {
+                    // alert("Load Error" + error) ;
+                    console.log('O, 0 An error happened during loading' + error);
+
+                },
+                // onLoad — A function to be called after the loading is successfully completed.					
+                function onLoad() {
+                    ; //  alert("loaded") ;  // werkt niet. 
+                }
+            );    // einde loader
+        }   // einde laadModel
+
+
+
+        function maakWings(k) {
+            //  alert("k: "  +k );
+            let n = k;
+            ;
+            for (let m = 0; m < 4; m++) {
+                let w = "Wing" + (m + 1);
+                //  alert(w); 
+                vleugelNummer = vleugelNummer + m + 1;
+                wings[vleugelNummer] = clones[k].getObjectByName(w);
+                //    alert(wings[m] ) ; 
+                //   clones[n][ wings[m] ];
+                console.log(wings[n]);
+            }
+        }
+
+        function maakMenu() {
+            let mess = '<a href="https://sketchfab.com/3d-models/drone-low-poly-1898e02633f94722b9ee91e0c208ad3c"' +
+                ' title="Drone made by Batuhan13"> Thanks </a>';
+
+            menu = document.getElementById("menu");
+            if (isTouchDevice())
+                menu.innerHTML = leesMenuTekst() + aantalClones + " Drones. Use fingers to rotate/zoom." + mess;
+            else
+                menu.innerHTML = leesMenuTekst() + aantalClones + " Drones. Use mouse to rotate or zoom. " + mess;
+
+            kleurActiveLink();
+        }
+
+        function maakScene() {
+            container = document.createElement('div');
+            document.body.appendChild(container);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+            camera.position.z = 300;
+
+            // scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x999999);
+            scene.add(camera);
+        }
+
+    </script>
+
+</body>
+
+</html>

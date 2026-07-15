@@ -1,0 +1,58 @@
+@charset "utf-8";
+/* CSS Document */
+body {
+	margin: 0px;
+	background-color: #000000;
+}
+#container{
+	margin: 10px auto auto auto;
+	background-color:silver; 
+	min-height:400px;  	
+}
+
+#modellen{
+	margin: auto;
+    width: 96%;
+	min-height:300px;  
+	/*
+	margin: 0px auto auto auto;
+	width: 100%;*/ 	
+	background-color:#333;
+	cursor:move;  	
+}
+input#demo{
+	/* background-color:red; */
+	margin-left:200px;
+	margin-top: -20px;	
+	z-index:-5; 
+}
+
+input[type="submit"]{
+	/* width: 5%; column-width:10px; 	
+ 	height:auto; */
+	width: 8em;  height: 2em; 
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+	margin-top:0px;
+	cursor:pointer;	
+}
+
+#submithome{
+	float:left; 
+	margin-left:5px;
+	background-image:url(../images/home.png); 
+
+}
+#submitlinks{ 
+    float:left; 
+	margin-left:20px; 
+	background-image:url(../images/pijlPrev.jpg);  
+	z-index: 5; 
+}
+#submitrechts{ 
+    float:right; 
+	margin-right:20px; 
+	margin-top: -20px;
+	background-image:url(../images/pijlNext.jpg); 
+	z-index: 5;		
+}

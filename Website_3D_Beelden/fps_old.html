@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>luchtballon met koppen transport.</title>
+    <meta charset="utf-8">
+    <!-- 
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        -->
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link href="css/menu.css" rel="stylesheet" type="text/css">
+    <link rel="icon" type="image/x-icon" href="./images/ernie.ico">
+    <style>
+        img {
+            width: 3%;
+        }
+
+        footer {
+            position: absolute;
+            bottom: 0%;
+            text-align: center;
+
+            background-color: transparent;
+            /* background-color: #777;              */
+            color: white;
+
+        }
+
+        .unselectable {
+            /* speciaal voor touch devices */
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            /* Safari */
+            -webkit-user-select: none;
+            /* Chrome */
+            -moz-user-select: none;
+            /* Firefox */
+            -ms-user-select: none;
+            /* Internet Explorer/Edge */
+        }
+    </style>
+    <script src="./build/jquery.js"></script>
+</head>
+
+<body>
+
+    <div id="menu">
+        Hier komt menu.
+    </div>
+
+    <footer>
+        <img src="images/pijlPrev.jpg" id="links" alt="to the left" title="to the left" class="unselectable">
+        <img src="images/pijlNext.jpg" id="rechts" alt="naar Rechts" title="to the right" class="unselectable">
+        <span>move</span>
+        <img src="images/pijlUp.jpg" id="up" alt="up" title="to the back" class="unselectable">
+        <img src="images/pijlDown.jpg" id="down" alt="down" title="to the front" class="unselectable">
+        <span id="tekst"> auto </span>
+        <img src="./images/play.png" id="show" title="automatic show forward" alt="automatic show forward"
+            class="unselectable">
+        <img src="./images/playback.png" id="showback" title="automatic show backward" alt="automatic show backward"
+            class="unselectable">
+    </footer>
+
+    <!-- Import maps polyfill -->
+    <!-- Remove this when import maps will be widely supported   -->
+    <script async src="./build/es-module-shims.js"></script>
+
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+				}
+			}
+		</script>
+
+    <script type="module">
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+        import * as THREE from 'three';
+        import { OBJLoader } from './jsm/loaders/OBJLoader.js';
+        import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+        import { leesModellen, modellen } from './my_js/all_modellen.js';
+
+        let container, menu;
+
+        let camera, scene, renderer;
+        let controls;   // touch mouse controls
+        let breedte = 550    // 550;
+
+        let windowHalfX = window.innerWidth / 2;
+        let windowHalfY = window.innerHeight / 2;
+
+        let ballon, luchtballon, kamer;
+        let kop = [];
+        const koppen = [];  // standaard null       
+        let nummer = 0;
+        let volgende = -1;
+        let pad;
+        let max;
+        let object;
+        let paal = [], sokkel = [];
+        let paalHoogte, paalDikte;
+        const aantalKolommen = 5;
+
+        // const pad = "./modellen/";
+
+        let textures = [], kleuren = [];
+        let pointLights = [], spotLight, spotLightHelper;
+        let shiftY = 100, shiftZ = 100;   // afstand paal pointlight. 
+        let intensity = 10;
+        let positie = 0;
+        let teller = -1;
+
+        const cameraZ = 1700;
+        let lightHolder;
+
+        let moveForward = false;
+        let moveBackward = false;
+        let moveLeft = false;
+        let moveRight = false;
+        let canJump = false;
+        let naarLinks = false; let naarRechts = false;
+        let naarAchter = false; let naarVoren = false;
+
+        init();
+        animate();
+
+        function init() {
+            //  let tekst = toonTekst(); 
+            //  alert(tekst); 
+            menu = document.getElementById("menu");
+            if (isTouchDevice())
+                menu.innerHTML = leesMenuTekst() + "Expositie all heads. Use fingers to zoom or rotate.";
+            else
+                menu.innerHTML = leesMenuTekst() + "Expositie all heads.  Use mouse to zoom or rotate.";
+
+            kleurActiveLink();
+
+            leesModellen();
+            max = modellen.length;
+            //   alert("aantal koppen: " + max ) ; 
+            let loc = location.hostname;
+            if (loc == "localhost")
+                pad = "./modellen/glb/"
+            else
+                pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+
+            maakNavigator();
+
+
+            function maakNavigator() {
+                const links = document.getElementById("links");
+                links.addEventListener("pointerdown", pressingLinks, false);
+                function pressingLinks() {
+                    naarLinks = true;
+                }
+                links.addEventListener("pointerup", releaseLinks, false);
+                function releaseLinks() {
+                    naarLinks = false;
+                }
+
+                const rechts = document.getElementById("rechts");
+                rechts.addEventListener("pointerdown", pressingRechts, false);
+                function pressingRechts() {
+                    naarRechts = true;
+                }
+                rechts.addEventListener("pointerup", releaseRechts, false);
+                function releaseRechts() {
+                    naarRechts = false;
+                }
+
+                const up = document.getElementById("up");
+                up.addEventListener("pointerdown", pressingOmhoog, false);
+                function pressingOmhoog() {
+                    naarAchter = true;
+                }
+                up.addEventListener("pointerup", releaseOmhoog, false);
+                function releaseOmhoog() {
+                    naarAchter = false;
+                }
+
+                const down = document.getElementById("down");
+                down.addEventListener("pointerdown", pressingDown, false);
+                function pressingDown() {
+                    naarVoren = true;
+                }
+                down.addEventListener("pointerup", releaseUp, false);
+                function releaseUp() {
+                    naarVoren = false;
+                }
+                const show = document.getElementById("show");
+                show.addEventListener("pointerdown", pressingDownShow, false);
+                function pressingDownShow() {
+                    //  alert("Kop:" + koppen[volgende] ); 
+                    volgende++;
+                    volgende = volgende % max;
+                    const tekst = document.getElementById("tekst");
+                    tekst.innerHTML = "kop:" + volgende + "/" + max;
+                }
+                const showback = document.getElementById("showback");
+                showback.addEventListener("pointerdown", pressingDownShowBack, false);
+                function pressingDownShowBack() {
+                    //  alert("Kop:" + koppen[volgende] ); 
+                    volgende--;
+                    if (volgende < 0)
+                        volgende = max;
+                    const tekst = document.getElementById("tekst");
+                    tekst.innerHTML = "kop:" + volgende + "/" + max;
+                }
+/*
+                $("footer").mouseover(function () {
+                    $("img").hide(1000);
+                });
+        */                
+               
+            }
+
+            container = document.createElement('div');
+            document.body.appendChild(container);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10 * 1000);
+            camera.position.z = cameraZ;   // 700 
+
+            // scene
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            scene.add(camera);
+            belichten();
+            maakKamer();
+            maakPalen();
+
+            for (let k = 0; k < aantalKolommen; k++) {
+                pointLights[k].position.x = paal[k].position.x;
+                pointLights[k].position.y = paal[k].position.y + shiftY;
+                pointLights[k].position.z = paal[k].position.z + shiftZ;
+            }
+
+            leesModellen();
+            laadModel();
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            //	document.addEventListener('mousemove', onDocumentMouseMove);
+            window.addEventListener('resize', onWindowResize);
+            startOrbitController();
+
+        }   // einde init
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (koppen[nummer] != null) {  // als er 1 is geladen: 
+                if (nummer < max - 1) {
+                    nummer++;
+                    laadModel();  // laadt de volgende
+                }
+            }
+            //  controls.update();
+            // lightHolder.quaternion.copy(camera.quaternion);
+            //  spotLight.quaternion.copy(camera.quaternion);
+            render();
+        }
+
+        function render() {
+            if (volgende > -1 && teller % 100 == 0) {
+                camera.position.x = paal[volgende].position.x;
+                camera.position.y = -45;
+                camera.position.z = paal[volgende].position.z + 40;
+
+                //  console.log("paal[volgende].x: " + paal[volgende].position.x);
+            }
+
+            if (teller % 100 == 0 && koppen[max - 1] != null)
+                scannenBeelden();
+            teller++;
+
+            let sp = 0.1;
+            if (naarLinks)
+                camera.position.x += sp;
+            if (naarRechts)
+                camera.position.x -= sp;
+            if (naarAchter)
+                camera.position.z += sp;
+            if (naarVoren)
+                camera.position.z -= sp;
+
+            renderer.render(scene, camera);
+        }
+
+
+        /*****************   spotLight scan   *******************/
+        function scannenBeelden() {
+          //  console.log("positie: " + positie ) ;
+            spotLight.target = paal[positie];
+            let afstand = berekenAfstandSpotLightKop(positie) * 1.07; // 1.14 ;
+        //    console.log("afstand: " + afstand ) ;
+            spotLight.distance = afstand ;  
+            spotLight.angle = 0.005 * Math.PI * breedte / afstand;
+            spotLight.color.setHex(kleuren[positie % aantalKolommen]);
+           // spotLight.color.setHex(0xffffff);
+            spotLightHelper.update();
+
+            positie++;
+            positie = positie % (max - 1);
+            //   console.log("nummer spotLight: " + positie);
+        }   // einde scannenBeelden. 
+
+        function kleurObject(kop) {
+            kop.traverse((o) => {
+                if (o.isMesh) {
+                    //    o.material.emissive = new THREE.Color(0xff3333);  //  333333
+                    o.material.metalness = 0.5;  // 0..1 , 0.5
+                }
+            });
+        }
+
+        function berekenAfstandSpotLightKop(pos) {
+            let a = (paal[pos].position.x) - spotLight.position.x;
+            let b = paal[pos].position.y + paalHoogte - spotLight.position.y ;
+            let c =  paal[pos].position.z - spotLight.position.z;
+            let d = Math.sqrt(a * a + b * b + c * c);
+            let kopHoogte = 20;
+         //   d = d + kopHoogte;
+        //    console.log("positie: " + pos + " / " + koppen[1]) ; 
+        //    console.log("afstand: " + d ) ;
+
+            return d ;
+        }
+        function belichten() {
+            let intens = 0.3;
+            const ambientLight = new THREE.AmbientLight(0xcccccc, intens);
+            scene.add(ambientLight);
+
+            // White directional light at half intensity shining from the top: 0,5 , default is 1. 
+            intens = 2.5 ;
+            const directionalLight = new THREE.DirectionalLight(0xffffff, intens);  // 1 voor pointlight leuk belichten.
+            directionalLight.position.set(- 150, -150, 150);
+            directionalLight.position.set(-breedte * 1.5, breedte * 1.5, breedte * 1.5);
+
+            scene.add(directionalLight);
+
+
+            // SpotLight( color : Integer, intensity : Float, distance : Float, angle : Radians, penumbra : Float, decay : Float )
+            const color = 0xFFFFFF;
+            intensity = 3000;  // 20
+            const angle = Math.PI * 0.015;
+
+            spotLight = new THREE.SpotLight(color, intensity, breedte, angle);
+            spotLight.position.x = 0;
+            spotLight.position.y = breedte * 0.5;   // 0.7
+            spotLight.position.z = breedte * 0.6;  // 100
+            // spotLight.position.set(breedte * 0.5, 0 * breedte * 0.5, 0 * breedte * 0.5);            
+            spotLight.decay = 0;
+
+            scene.add(spotLight);
+
+            spotLightHelper = new THREE.SpotLightHelper(spotLight);
+            scene.add(spotLightHelper);
+
+            // kleuren voor standaards, pointlights en spotLight. 
+            kleuren[0] = 0x228B22; // 0xff0000 ; //
+            kleuren[1] = 0x20B2AA;
+            kleuren[2] = 0x87CEEB;
+            kleuren[3] = 0x696969;
+            kleuren[4] = 0xAA6969;
+/*            kleuren[2] = 0x0000ff ;                 
+            kleuren[3] = 0x00ff00 ;              
+            kleuren[4] = 0xff0000 ;    */ 
+
+            // SphereGeometry(radius : Float, widthSegments : Integer, heightSegments :
+            const sphere = new THREE.SphereGeometry(3.3, 16, 8);  // voor lights.  
+            // PointLight( color : Integer, intensity : Float, distance : Number, decay : Float ); 
+            intensity = 17.0;
+            for (let k = 0; k < aantalKolommen; k++) {
+                pointLights[k] = new THREE.PointLight(kleuren[k], intensity, 100);  // 200 
+                let mat = new THREE.MeshPhongMaterial({ color: kleuren[k], shininess: 200, reflectivity: 0.9 });
+                pointLights[k].add(new THREE.Mesh(sphere, mat));   // ff0040
+                // scene.add(pointLights[k]);
+            }
+            //  scene.add(pointLights[0]);
+
+            lightHolder = new THREE.Group();
+            for (let k = 0; k < aantalKolommen; k++) {
+                lightHolder.add(pointLights[k]);
+            }
+            //  lightHolder.add(pointLights[0]);
+            //  lightHolder.position.z = +0 ;
+            //   lightHolder.position.x = +100 
+            scene.add(lightHolder);
+            //  lightHolder.quaternion.copy(camera.quaternion); // in the animation loop
+
+        }
+
+
+        function laadModel() {
+            let model = pad + modellen[nummer] + '.glb';
+            //    console.log("model: " + model) ; 
+            //  alert("model: " + model);
+            const loader = new GLTFLoader();
+
+            loader.load(model, function (gltf) {
+                //  console.log("nummer: " + nummer);
+                kop = gltf.scene.children[0];
+                //    koppen[nummer] = kop;
+                kleurObject(kop);
+                normeerKop(kop);
+                centerPivot(kop);
+
+                // kop.position.x = - max / 2 * 50 + 50 * nummer;
+                kop.position.x = paal[nummer].position.x;   // + 300;
+                kop.position.y = paal[nummer].position.y + paalHoogte * 0.6;
+                kop.position.z = paal[nummer].position.z;
+                //   koppen[nummer].position.y = 10 * nummer;
+                // console.log("geladen, nummer: " + nummer);
+                //   toonPivot();
+                // koppen[nummer] = kop ;                 
+                scene.add(koppen[nummer]);
+                //  alert("nummer na laden: " + nummer)
+            },
+                function (xhr) {
+                    let proc = + 100 * xhr.loaded / xhr.total;
+                    proc = proc.toFixed(0) + "%";
+                    if (proc == '118%' || proc == '100%') {
+                        proc = '';
+                    }
+
+                },
+                function (onLoad) {
+                    //  alert("loaded"); 
+                    // 	console.log('loaded');
+                },
+                // called when loading has errors
+                function (error) {
+                    //  if (loc == "localhost")
+                    //      alert("o o an error while loading: " + nummer + " kop");
+                    console.log('O, 0 An error happened during loading');
+                }
+            );    // einde loader
+        }   // einde laadModel
+
+        function maakKamer() {
+            //	var material = new THREE.MeshBasicMaterial( {color: 0xcccccc} );
+            let materialArray = [];
+            let texture_ft = new THREE.TextureLoader().load('./images/skybox/wit.jpg');  // linkerkant 
+            let texture_bk = new THREE.TextureLoader().load('./images/skybox/wit.jpg');  // rechterkant
+            let texture_up = new THREE.TextureLoader().load('./images/skybox/zwart.jpg');
+            let texture_dn = new THREE.TextureLoader().load('./images/schaakbord.jpg');
+            let texture_rt = new THREE.TextureLoader().load('./images/skybox/woman1.jpg');  // achter
+            let texture_lf = new THREE.TextureLoader().load('./images/skybox/woman1.jpg');
+
+            // MeshBasicMaterial geen reflectie, MeshLambertMaterial and MeshPhongMaterial and MeshStandardMaterial.
+
+            materialArray.push(new THREE.MeshStandardMaterial({ map: texture_ft }));
+            materialArray.push(new THREE.MeshStandardMaterial({ map: texture_bk }));
+            materialArray.push(new THREE.MeshBasicMaterial({ map: texture_up }));
+            materialArray.push(new THREE.MeshPhongMaterial({ map: texture_dn }));
+            materialArray.push(new THREE.MeshStandardMaterial({ map: texture_rt }));
+            materialArray.push(new THREE.MeshPhongMaterial({ map: texture_lf }));
+
+
+            for (let i = 0; i < 6; i++)
+                materialArray[i].side = THREE.BackSide;  // BothSide;  // FrontSide ;  //  BackSide;
+
+            let boxGeo = new THREE.BoxGeometry(breedte, breedte, breedte);
+            kamer = new THREE.Mesh(boxGeo, materialArray);
+
+
+            //  kamer = new THREE.Mesh(geometry, material);
+            kamer.position.y = breedte * 0.3;
+            //    kamer.rotation.x = -0.03;  // 0.4
+            kamer.rotation.y = Math.PI / 1;
+            scene.add(kamer);
+
+        }
+        /******************     maken palen    ************/
+        function maakPalen() {
+            let vakBreedte = 69;
+            let rad = 8;
+            let geo = new THREE.CylinderGeometry(rad, rad, 60, 32);  // radius i, radius o, height. 
+            geo = new THREE.SphereGeometry(33, 16, 8);  // voor lights.              
+            //    mat = new THREE.MeshBasicMaterial({ color: kleuren[k] });
+            /*
+                new THREE.SphereGeometry( 1 ),
+                                new THREE.MeshLambertMaterial( {
+                                        opacity: 0.5,
+                                        transparent: i%4==0,
+                                })
+                );	
+                https://codepen.io/boytchev/pen/mdYxRzR    
+                https://medium.com/geekculture/threejs-tutorial-comparing-the-most-common-materials-424eef8942a4#id_token=eyJhbGciOiJSUzI1NiIsImtpZCI6Ijc2M2Y3YzRjZDI2YTFlYjJiMWIzOWE4OGY0NDM0ZDFmNGQ5YTM2OGIiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiIyMTYyOTYwMzU4MzQtazFrNnFlMDYwczJ0cDJhMmphbTRsamRjbXMwMHN0dGcuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiIyMTYyOTYwMzU4MzQtazFrNnFlMDYwczJ0cDJhMmphbTRsamRjbXMwMHN0dGcuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTgyMzU3NzEyNDg3MDc1ODkxNTciLCJlbWFpbCI6InJvYnZhbmNvb3RlbkBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmJmIjoxNzQwNDA2NjEzLCJuYW1lIjoiUm9iIENvb3RlbiB2YW4iLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSzFCODBETFIwaVh5MDQzcVVIOExHdFRFSW1taHlmSXgzNUlMLXdNaFhSQWZrX2NFUT1zOTYtYyIsImdpdmVuX25hbWUiOiJSb2IiLCJmYW1pbHlfbmFtZSI6IkNvb3RlbiB2YW4iLCJpYXQiOjE3NDA0MDY5MTMsImV4cCI6MTc0MDQxMDUxMywianRpIjoiZWM1YWRjMzIzMGUzNGQyY2Y3Yzk0OGNiODgxNDRkMGE1MGQ1Yzc4NSJ9.yWJmkNsNXGtqjDi_Nzm9NqdAour91Tmt136Z9Nr9wewdPDW3wltR8N8Y_kIKzAkN1YSWuQxxbH0dt1ixFB7kEyKJqYanRcR20vVnbqpR3lw2a2n3BOp_2zn1uz95WMAPhqBqVSh6Sk8X8onmXcLEXfg8_Gme3IF2Nlhc7brSAuAFbMCWw78uNF-9lJYJOWzpsJGC_523R88rwRMKgoxpOJmRdSD95Ve7kYkKgH8FEaJkT7RW4R29w7R3Nd-mqKuK4ueTISr5B_y48OC0z4rWmsRn_QIHsKxhiaWeReQFE-OK24eVMi7LXOpN5ljgS30W23eNOCunmty_tuOBy9kI7g
+                new THREE.MeshLambertMaterial({color: '#F00', emissive: '#0FF'})
+                new THREE.MeshPhongMaterial({color: '#F00', shininess: 100})
+
+             //       mat = new THREE.MeshPhongMaterial({ color: kleuren[k % aantalKolommen], reflectivity: 0.0 , shininess: 111 });
+             //       mat = new THREE.MeshPhongMaterial({color: '#F00', shininess: 111}) ; 
+               let mat =    new THREE.MeshLambertMaterial({color: kleuren[k % aantalKolommen], emissive: '#555'})    
+             //   mat.emissive = new THREE.Color(0x333333);  //  333333
+             //   mat.metalness = 0.0;  // 0..1 , 0.5
+             //   mat.opacity = 0;               
+
+            */
+
+            for (let k = 0; k < max; k++) {
+                let mat = new THREE.MeshPhongMaterial({ color: kleuren[k % aantalKolommen], reflectivity: 0.5});      
+                mat = new THREE.MeshStandardMaterial({color: kleuren[k % aantalKolommen], roughness: 0.2 })    ;                                
+                // roughness is, the shinier. Metalness is a difficult concept for me, but it does look more like metal as the value goes up.                                     
+                paal[k] = new THREE.Mesh(geo, mat);
+
+                paal[k].geometry.computeBoundingBox();
+                let box = new THREE.Box3().setFromObject(paal[k]);
+                paalHoogte = box.max.y - box.min.y;
+                paalDikte = box.max.x - box.min.x;
+                //  alert("paalHoogte" + paalHoogte);
+
+                paal[k].position.x = -  vakBreedte * aantalKolommen / 2 + 0.5 * vakBreedte - paalDikte + (k % aantalKolommen) * vakBreedte;
+                paal[k].position.y = -80;
+                paal[k].position.z = + aantalKolommen / 2 * vakBreedte - vakBreedte * Math.floor(k / aantalKolommen);
+                //    console.log("paal.z: " + paal[k].position.z  )
+                scene.add(paal[k]);
+            }
+        }  // einde maakPalen.             
+
+        function startOrbitController() {
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.addEventListener('change', render);
+            controls.listenToKeyEvents(window);    // pijltjes toetsen.                
+
+            controls.minPolarAngle = -Math.PI * 0.3;     // tilt. , x as.            
+            controls.maxPolarAngle = Math.PI * 0.5;   // + meer zon. 
+
+            controls.minAzimuthAngle = 0 // -Math.PI * 0.25;      // rot y as.
+            controls.maxAzimuthAngle = 0 // Math.PI * 0.55;
+
+            controls.target.set(0, 10, 0);
+            controls.minDistance = 40.0;
+            controls.maxDistance = breedte * 10;
+            controls.update();
+        }
+
+        function pivot() {
+            /*
+            let box = new THREE.Box3().setFromObject(koppen[0]);
+            let sizeX = box.getSize().x;
+            let sizeY = box.getSize().y;
+            let sizeZ = box.getSize().z;      */
+        }
+        function normeerKop(kop) {
+            let hoogte = berekenHoogte(kop);
+            let scaleFactor = 17 / hoogte;
+            // hoogte = Math.round(hoogte);
+            //   alert("hoogte: " + hoogte);
+            kop.scale.multiplyScalar(scaleFactor);  // 50    
+        }
+        function berekenHoogte(kop) {
+            let box3 = new THREE.Box3().setFromObject(kop);
+            let size = new THREE.Vector3();
+            box3.getSize(size);
+            //   console.log("size: " + size.y);
+            return size.y;
+        }
+        function centerPivot(kop) {
+            let box3 = new THREE.Box3().setFromObject(kop);
+            const low = box3.min;
+            const high = box3.max;
+            const corner1 = new THREE.Vector3(low.x, low.y, low.z);
+            const corner8 = new THREE.Vector3(high.x, high.y, high.z);
+            const transform = new THREE.Vector3(0, 0, 0,);
+            //    transform = ( corner1 - corner8 ) / 2;                     
+
+            const group = new THREE.Group();
+            group.add(kop);
+            kop.position.x = kop.position.x - (high.x + low.x) / 2;
+            kop.position.y = kop.position.y - (high.y + low.y) / 2;
+            kop.position.z = kop.position.z - (high.z + low.z) / 2;
+
+            //   console.log("transform.x: "  +  (high.x  + low.x)/2 ); 
+            koppen[nummer] = group;
+            //    scene.add(group); 
+
+        }
+        /*
+            // https://stackoverflow.com/questions/70852348/how-to-get-corners-of-bounding-box-in-threejs         
+boundingBox = new  THREE.Box3();
+boundingBox.setFromObject(objectContainer);
+
+const low = boundingBox.min;
+const high = boundingBox.max;
+
+const corner1 = new THREE.Vector3(low.x,    low.y,  low.z);
+const corner2 = new THREE.Vector3(high.x,   low.y,  low.z);
+const corner3 = new THREE.Vector3(low.x,    high.y, low.z);
+const corner4 = new THREE.Vector3(low.x,    low.y,  high.z);
+
+const corner5 = new THREE.Vector3(high.x,   high.y, low.z);
+const corner6 = new THREE.Vector3(high.x,   low.y,  high.z);
+const corner7 = new THREE.Vector3(low.x,    high.y, high.z);
+const corner8 = new THREE.Vector3(high.x,   high.y, high.z);
+        */
+    </script>
+
+</body>
+
+</html>

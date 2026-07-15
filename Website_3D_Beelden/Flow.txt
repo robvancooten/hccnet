@@ -1,0 +1,120 @@
+Flow
+Rob Cooten van
+​U​
+const points = [
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(5, 2, -3),
+    new THREE.Vector3(10, 0, 0),
+    new THREE.Vector3(15, 3, 5)
+];
+
+const curve = new THREE.CatmullRomCurve3(points, false, "catmullrom", 0.5);
+
+
+let target;
+
+const loader = new THREE.GLTFLoader();
+loader.load("model.glb", (gltf) => {
+    const model = gltf.scene;
+    scene.add(model);
+
+    target = model.getObjectByName("Cube"); 
+    // of je eigen mesh‑naam  bladerKop 
+});
+
+
+let t = 0;
+
+function animate(time) {
+    requestAnimationFrame(animate);
+
+    if (target) {
+        t += 0.0005;          // snelheid
+        if (t > 1) t = 0;     // loop opnieuw
+
+        const pos = curve.getPointAt(t);
+        const tangent = curve.getTangentAt(t);
+
+        target.position.copy(pos);
+
+        // Object laten "meedraaien" met de curve
+        const axis = new THREE.Vector3(0, 1, 0);
+        const up = new THREE.Vector3(0, 1, 0);
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(up, tangent.clone().normalize());
+        target.quaternion.copy(quaternion);
+    }
+
+    renderer.render(scene, camera);
+}
+
+animate();
+
+
+
+const curveGeometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(100));
+const curveMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+const curveLine = new THREE.Line(curveGeometry, curveMaterial);
+scene.add(curveLine);
+
+/***************************************************/
+
+meerdere objecten:
+
+
+const points = [
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(5, 2, -3),
+    new THREE.Vector3(10, 0, 0),
+    new THREE.Vector3(15, 3, 5)
+];
+
+const curve = new THREE.CatmullRomCurve3(points, false, "catmullrom", 0.5);
+
+
+const objectsOnCurve = [];
+const loader = new THREE.GLTFLoader();
+
+function loadObject(path, offsetT) {
+    loader.load(path, (gltf) => {
+        const model = gltf.scene;
+        scene.add(model);
+
+        objectsOnCurve.push({
+            mesh: model,
+            t: offsetT   // startpositie op de curve
+        });
+    });
+}
+
+loadObject("car.glb", 0.0);
+loadObject("car.glb", 0.33);
+loadObject("car.glb", 0.66);
+
+function animate(time) {
+    requestAnimationFrame(animate);
+
+    const speed = 0.0003;
+
+    objectsOnCurve.forEach((obj) => {
+        obj.t += speed;
+        if (obj.t > 1) obj.t -= 1;
+
+        const pos = curve.getPointAt(obj.t);
+        const tangent = curve.getTangentAt(obj.t);
+
+        obj.mesh.position.copy(pos);
+
+        // Rotatie mee met de curve
+        const up = new THREE.Vector3(0, 1, 0);
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(up, tangent.clone().normalize());
+        obj.mesh.quaternion.copy(quaternion);
+    });
+
+    renderer.render(scene, camera);
+}
+
+animate();
+
+Met vriendelijke groeten, 
+Rob van Cooten.    👀 
+https://home.hccnet.nl/r.van.cooten 

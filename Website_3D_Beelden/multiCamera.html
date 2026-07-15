@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>three.js webgl - arraycamera</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="css/menu.css">
+</head>
+
+<body>
+    <div id="menu">
+        Hier komt menu.
+    </div>
+
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+    <script type="module">
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+        import * as THREE from 'three';
+        import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+
+        let camera, scene, renderer;
+        const cameras = [];
+        let kop;
+        const AANTAL = 6;   // 6
+
+        init();
+
+        function init() {
+            toonMenu();
+
+            maakSubCameras();
+            maakScene();
+            maakBelichting();
+          //   maakAchtergrond();
+
+            laadKop();
+            maakRenderer();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+
+            const ASPECT_RATIO = window.innerWidth / window.innerHeight;
+            const WIDTH = (window.innerWidth / AANTAL) * window.devicePixelRatio;
+            const HEIGHT = (window.innerHeight / AANTAL) * window.devicePixelRatio;
+
+            camera.aspect = ASPECT_RATIO;
+            camera.updateProjectionMatrix();
+
+            for (let y = 0; y < AANTAL; y++) {
+
+                for (let x = 0; x < AANTAL; x++) {
+
+                    const subcamera = camera.cameras[AANTAL * y + x];
+
+                    subcamera.viewport.set(
+                        Math.floor(x * WIDTH),
+                        Math.floor(y * HEIGHT),
+                        Math.ceil(WIDTH),
+                        Math.ceil(HEIGHT));
+
+                    subcamera.aspect = ASPECT_RATIO;
+                    subcamera.updateProjectionMatrix();
+
+                }
+
+            }
+
+        //    renderer.setSize(window.innerWidth, window.innerHeight);
+
+        }
+
+        function animate() {
+            if (kop != null) {
+                 kop.rotation.z += 0.01;
+            }
+            renderer.render(scene, camera);
+
+        }
+
+
+        function toonMenu() {
+            let menu;
+
+            menu = document.getElementById("menu");
+            if (isTouchDevice())
+                menu.innerHTML = leesMenuTekst() + "Head with different textures. Use finger to rotate, double touche to stop/run.";
+            else
+                menu.innerHTML = leesMenuTekst() + "Head with textures.  Use mouse to rotate, double click to stop/run. Wheel to zoom.";
+
+            kleurActiveLink();
+        }
+        function maakRenderer() {
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setAnimationLoop(animate);
+            document.body.appendChild(renderer.domElement);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function maakSubCameras() {
+            const ASPECT_RATIO = window.innerWidth / window.innerHeight;
+
+            const WIDTH = (window.innerWidth / AANTAL) * window.devicePixelRatio;
+            const HEIGHT = (window.innerHeight / AANTAL) * window.devicePixelRatio;
+            for (let y = 0; y < AANTAL; y++) {
+
+                for (let x = 0; x < AANTAL; x++) {
+
+                    const subcamera = new THREE.PerspectiveCamera(40, ASPECT_RATIO, 0.1, 10);
+                    subcamera.viewport = new THREE.Vector4(Math.floor(x * WIDTH), Math.floor(y * HEIGHT), Math.ceil(WIDTH), Math.ceil(HEIGHT));
+                    subcamera.position.x = (x / AANTAL) - 0.5;
+                    subcamera.position.y = 0.5 - (y / AANTAL);
+                    subcamera.position.z =  1.0 * AANTAL - 0.7 * x ;  //  - 1.5 * y;
+                    subcamera.position.multiplyScalar(2);
+                    subcamera.lookAt(0, 0, 0);
+                    subcamera.updateMatrixWorld();
+                    cameras.push(subcamera);
+                }
+            }
+        }  // einde subcameras. 
+
+        function maakScene() {
+            camera = new THREE.ArrayCamera(cameras);
+            camera.position.z = 3;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x00aa00);
+        }
+
+        function maakBelichting() {
+            const ambientLight = new THREE.AmbientLight(0xcccccc, 1);
+            scene.add(ambientLight);
+
+            const dlight = new THREE.DirectionalLight(0xffffff, 5);
+            dlight.position.set(0.5, 0.5, 10);
+            scene.add(dlight);
+        }
+
+        function laadKop() {
+            let pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+            let model = pad + 'bladerKop.glb';
+            //  console.log("model: " + model)
+            const loader = new GLTFLoader();
+
+            loader.load(model, function (gltf) {
+                kop = gltf.scene.children[0];
+
+                // kop.scale.multiplyScalar(1);  // 50 
+                kop.position.x = 0.0;
+                kop.position.y = 0;    // - 95;
+                kop.position.z = 0;    // - 95;
+                kop.scale.x = kop.scale.y = kop.scale.z = 0.051;
+
+                scene.add(kop);
+            },
+                // called while loading is progressing
+                function (xhr) {
+                    ;
+                    // console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                // called when loading has errors
+                function (error) {
+
+                    console.log('O, 0 An error happened during loading');
+                    if (location.hostname == "localhost")
+                        alert("'O, 0 An error happened during loading");
+
+                }
+            );    // einde loader
+        }   // einde laadKop   
+        
+            function maakAchtergrond(){
+                            const geometryBackground = new THREE.PlaneGeometry(100, 100);
+            const materialBackground = new THREE.MeshPhongMaterial({ color: 0x000066 });
+
+            const background = new THREE.Mesh(geometryBackground, materialBackground);
+            background.position.set(0, 0, - 1);
+            scene.add(background);
+            }        
+
+    </script>
+
+</body>
+
+</html>

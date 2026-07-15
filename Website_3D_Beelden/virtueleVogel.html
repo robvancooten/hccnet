@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <title>Head build from Vertices.</title>
+        <meta charset="utf-8">
+    </head>
+
+    <body>
+        <!-- Import maps polyfill -->
+        <script src="js/Detector.js"></script>
+        <script async src="./build/es-module-shims.js"></script>
+
+        <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"					
+				}
+			}
+		</script>
+
+        <script type="module">
+            import * as THREE from 'three';
+            import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+            import { OrbitControls } from './jsm/controls/OrbitControls.js';
+
+            let container;
+            let camera, scene, renderer;
+            let kop, group, pivot, hoofd;
+            let r = +1; // richting roteren. 
+            let controls;
+
+            let pad;
+            if (location.hostname == "localhost")
+                pad = "./modellen/glb/"
+            else
+                pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+
+            init();
+
+            function init() {
+                container = document.createElement('div');
+                document.body.appendChild(container);
+
+                camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+                camera.position.z = 50;
+
+                // scene
+                scene = new THREE.Scene();
+                // scene.background = new THREE.Color( 0xaaaaaa );   			
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
+                directionalLight.position.set(-100, 100, 100)
+                scene.add(directionalLight);
+
+                scene.add(camera);
+
+                //model
+                laadModel();
+                myRenderer();
+                startOrbitController();
+
+                window.addEventListener('resize', onWindowResize);
+                animate();
+
+            }   // einde init
+
+            function myRenderer() {
+                renderer = new THREE.WebGLRenderer({ alpha: true }); // transparant.  
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                container.appendChild(renderer.domElement);
+            }
+
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                render();
+                controls.update(); 
+            }
+
+            function render() {
+                camera.lookAt(scene.position);
+
+                if (pivot != null) {
+                    if (pivot.rotation.y > 0.5)
+                        r = -1;
+                    if (pivot.rotation.y < -0.5)
+                        r = +1;
+
+                    pivot.rotation.y += 0.005 * r;
+                }
+                renderer.render(scene, camera);
+            }
+            async function laadModel() {
+                let model = pad + 'geinVogelAni.glb';  //  'geinVogelAni.glb';   // 'meermin.glb';               
+                //  console.log("model: " + model)
+                const loader = new GLTFLoader();
+
+                let gltf = await loader.loadAsync(model);
+                let aniPop = gltf.scene;
+                hoofd = aniPop.getObjectByName('kop');
+                hoofd.position.y = hoofd.position.y + 5;
+                //  alert("Hoofd: " + hoofd) ; 
+                // maakVertices(aniPop);
+                maakVertices(hoofd);
+            //    scene.add(hoofd);                
+                scene.add(aniPop);
+                hoofd.visible = false ; 
+            }
+
+            function maakVertices(kop) {
+                let clones = [];
+
+                let boxje;    // vorm 
+                let kleur = 0x248983;  //  0x800080 ; paars
+                boxje = maakBoxje(kleur);
+
+                group = new THREE.Group();
+                //     group.scale.multiplyScalar(0.7);  // vergroting                 
+                //  scene.add(group);
+
+                let meshes = [];
+                kop.traverse(e => e.isMesh && meshes.push(e));
+
+                meshes.forEach(mesh => {
+                    let g = mesh.geometry;
+                    let points = g.attributes.position;
+                    let colorAttr = mesh.geometry.getAttribute("color");
+                    //	alert("Aantal attri: " + colorAttr) ; 
+
+                    for (let i = 0; i < points.count; i++) {
+                        let x = points.getX(i);
+                        let y = points.getY(i);
+                        let z = points.getZ(i);
+                        // 	const r = points.colorAttr.getX( i ); 
+
+                        if (i % 1 == 0) {
+                            clones[i] = boxje.clone();
+                            clones[i].position.x = x - 8;
+                            clones[i].position.y = y;   // + 20;
+                            clones[i].position.z = z;
+                            // console.log("aantal: "  + i ); 
+                            // scene.add(clones[i]); 
+                            group.add(clones[i]);
+                        }
+                    }
+                    //    let size = new THREE.Vector3();
+
+                    //  const pivot = new Three.Group(); 
+                    // group.rotation.x = Math.PI / 2;  
+                    verPlaatsGroup(group);  // om pivot op nul te krijgen. 
+
+                    pivot = new THREE.Object3D();
+                    pivot.add(group);
+                    pivot.position.y = 12.5 ; 
+                    pivot.position.z = 1.4 ;                     
+                    scene.add(pivot); // NOTE Do not add model directly to the scene, just the pivot group model.position.set(0.0, -0.25, 0.0):
+                })
+                function maakBoxje(kl) {
+                    let d = 0.1;
+                    let geometryBox = new THREE.BoxGeometry(d, d, d);
+                    let materialBox = new THREE.MeshBasicMaterial({ color: kl });
+                    // materialBox = new THREE.MeshLambertMaterial({ color: 0x00ff00 });                
+                    return boxje = new THREE.Mesh(geometryBox, materialBox);
+                }
+            }
+
+            function startOrbitController() {
+                controls = new OrbitControls(camera, renderer.domElement);
+                controls.addEventListener('change', render);
+                controls.listenToKeyEvents(window);    // pijltjes toetsen.            
+
+                controls.minPolarAngle = -Math.PI * 1.5;     // tilt. , x as.          
+                controls.maxPolarAngle = Math.PI * 0.5;
+
+                controls.minAzimuthAngle = -Math.PI * 0.4;      // rot y as.
+                controls.maxAzimuthAngle = Math.PI * 0.4;
+
+                controls.target.set(0, 10, 0);
+                controls.minDistance = 20.0;
+                controls.maxDistance = 200.0;
+
+              // controls.autoRotate = true;
+              //  controls.autoRotateSpeed = -5;   // 2 is default. 
+
+                controls.update();
+
+            }  // einde OrbitController    
+
+            function verPlaatsGroup(group) {
+                const box3 = new THREE.Box3();
+                box3.setFromObject(group);  // maakt boundaryBox. 
+                //    let size = box3.getSize(new THREE.Vector3());
+
+                let vector3 = new THREE.Vector3(0, 1, 0);
+                box3.getCenter(vector3);
+                //  console.log(vector3); 
+                group.rotation.x = Math.PI / 2;
+                group.translateX(-vector3.x);
+                group.translateY(-vector3.y);
+                group.translateZ(-vector3.z);
+            }                           
+        </script>
+    </body>
+
+</html>

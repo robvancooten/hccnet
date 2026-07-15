@@ -1,0 +1,64 @@
+####################################
+# netfabb Wavefront export         #
+####################################
+newmtl material_1
+Ka 0.2 0.2 0.2
+Kd 1.00000 1.00000 1.00000
+Ks 1.0 1.0 1.0
+map_Kd mesh_(repaired)_f835a012e50e1d4f8d06f56d974b955a.png
+
+newmtl material_2
+Ka 0.2 0.2 0.2
+Kd 0.50196 0.50196 0.50196
+Ks 1.0 1.0 1.0
+
+newmtl material_3
+Ka 0.2 0.2 0.2
+Kd 0.74902 0.74902 0.74902
+Ks 1.0 1.0 1.0
+
+newmtl material_4
+Ka 0.2 0.2 0.2
+Kd 0.83137 0.83137 0.83137
+Ks 1.0 1.0 1.0
+
+newmtl material_5
+Ka 0.2 0.2 0.2
+Kd 0.66667 0.66667 0.66667
+Ks 1.0 1.0 1.0
+
+newmtl material_6
+Ka 0.2 0.2 0.2
+Kd 0.83137 0.83137 0.83137
+Ks 1.0 1.0 1.0
+map_Kd mesh_(repaired)_f835a012e50e1d4f8d06f56d974b955a.png
+
+newmtl material_7
+Ka 0.2 0.2 0.2
+Kd 0.66667 0.66667 0.66667
+Ks 1.0 1.0 1.0
+map_Kd mesh_(repaired)_f835a012e50e1d4f8d06f56d974b955a.png
+
+newmtl material_8
+Ka 0.2 0.2 0.2
+Kd 0.74902 0.74902 0.74902
+Ks 1.0 1.0 1.0
+map_Kd mesh_(repaired)_f835a012e50e1d4f8d06f56d974b955a.png
+
+newmtl material_9
+Ka 0.2 0.2 0.2
+Kd 0.58431 0.58431 0.58431
+Ks 1.0 1.0 1.0
+
+newmtl material_10
+Ka 0.2 0.2 0.2
+Kd 0.91373 0.91373 0.91373
+Ks 1.0 1.0 1.0
+map_Kd mesh_(repaired)_f835a012e50e1d4f8d06f56d974b955a.png
+
+newmtl material_11
+Ka 0.2 0.2 0.2
+Kd 0.95686 0.95686 0.95686
+Ks 1.0 1.0 1.0
+map_Kd mesh_(repaired)_f835a012e50e1d4f8d06f56d974b955a.png
+

@@ -1,0 +1,40 @@
+div#pijltjes {
+	/* margin: auto;    /* ruimte er omheen, top left, bottom, right */
+	margin-top: 0px; 
+	padding-top: 0px;
+	/* padding: 10%;   */
+	width: 100%;
+	height: 6vh; 
+}
+
+
+
+img#prev, img#next{
+	margin-top: 1.0vh;  
+	width: 5vw ;            /* 7% ; */  
+	height:  5vh ;           /* 20px;  */
+	cursor: url(images/kop.cur) , auto ;  
+	display:inline;   /* voor images dezelfde hoogte  */			
+}
+img#next{
+  float: right; 
+}
+
+span#navigator{
+	   /* margin: auto;  ruimte er omheen, top left, bottom, right */
+	margin-left: 40%;
+	position: absolute;
+	top: 9vh; 
+	width: 30%;
+	background-color: #999;	
+	text-align: center;	
+	border-style: inset;
+	/*  padding-top: 1vh;    */
+}
+
+span#navigator:hover {
+	background-color:#0f0; 	
+}
+
+
+

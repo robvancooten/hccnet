@@ -1,0 +1,104 @@
+<!-- Rob van Cooten. -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Three.js - HTML Background</title>
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D modellen, Threejs, javascript, Keramiek">
+    <meta name="description"
+      content="Beschrijft hoe ik keramieke beelden digitaliseer tot 3D objecten in glTF formaat. Toont op allerlei manieren keramieke beelden, gemaakt door Marjan van Cooten. De beelden zijn van alle kanten te bekijken.">
+
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="css/howto.css">
+    <link type="text/css" rel="stylesheet" href="css/menu.css">
+    <link type="text/css" rel="stylesheet" href="css/colored_scrollbar.css">
+
+  </head>
+
+  <body>
+    <div id="menu">
+      <h1>Hier komt menu </h1>
+    </div>
+
+		<script type="module">
+			import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js' ; 
+
+      let menu = document.getElementById("menu");
+      if (isTouchDevice())
+        menu.innerHTML = leesMenuTekst(); //  + " Sprites. Touch to stop.";
+      else
+        menu.innerHTML = leesMenuTekst(); //  + " Sprites. Press mouse to stop.";
+
+      kleurActiveLink(); 
+    </script>
+
+    <iframe id="background"  title="Ceramic Head." src="kopje_inner.html"></iframe>
+
+    <div id="content">
+
+      <h3> &#128512; Heads made by Marjan van Cooten.</h3>
+      <p>
+        How did I make this 3D Objects?
+      </p>
+      <p>
+        First of all, make these fantasy heads of ceramic.
+      </p>
+      <p>
+        Thereafter made a couple of photos, <br>
+        from all directions <br>
+        by rotating <b>your camera</b> around the object.
+      </p>
+      <p>
+        Mostly 30/40 photos where good enough.
+      </p>
+      <p>
+        Send the images to a free Object transformer.<br>
+        I'm using trnio app <br>
+        on my iPhone:    <br>
+        Send to: <a href="https://www.trnio.com/">TRNIO.Making 3D Meshes. </a> <br>
+        Or I just send my photos from my 'normal' camera. <br>
+        Send to: <a href="https://sketchfab.com/">Sketchfab. Making 3D models </a>
+      </p>
+      <p>
+        Export object as *.obj file.
+      </p>
+      <p>
+        Import the model in Blender 3D.   <br>
+        Download from: <a href="https://www.blender.org/download/">Blender 3D. </a>
+      </p>
+      <p>
+        Clean the object.
+      </p>
+      <p>
+        Delete imperfections.
+      </p>
+      <p>
+        Compress the object.
+      </p>
+      <p>
+        Export in glb binair format <br>
+        (GL Transmission Format, glTF).
+      </p>
+      <p>
+        Look at code example from THREEJS.
+      </p>
+      <p>
+        Take a nice example.
+      </p>
+      <p>
+        Publish it on your website.
+      </p>
+      <p>
+        So every one can see how smart you are!
+      </p>
+      <p>
+        Have fun.
+      </p>
+      <p>
+        Example code: <br>
+        From: <a href="https://threejs.org/examples/">Threejs (js coding for 3D objects). </a>
+      </p>
+    </div>
+  </body>
+</html>

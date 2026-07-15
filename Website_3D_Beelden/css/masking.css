@@ -1,0 +1,146 @@
+html,
+body {
+  height: 100%;
+}
+
+body {
+  /* background-color: black;    */
+  cursor: all-scroll;
+
+}
+
+#anibox {
+  margin: auto ; 
+  float: left;
+  width: 95%;
+  height: 30%;
+  /* margin: 0 0 10px  22px;   */
+  background-color: darkgreen;     
+  border-style: inset;
+  border: 1px solid #000000;    
+  cursor: grab;
+}
+#anibox img {
+  width: 24%;
+  height: 100% ;
+}
+#myframe {
+  margin: auto ; 
+  float: left;
+  width: 95% ; 
+  height: 30% ; 
+   border: 0px solid #000000;  
+   background-color: #aaaaaa;  
+} 
+
+#fr1,
+#fr2,
+#fr3,
+#fr4 {
+  float: left;
+  width: 24%;
+  margin-left: 0% ; 
+  margin-top: 0% ;
+  /* 50 %   */
+  border: 1px solid #aaaaaa;
+  background-color: #ddd;
+  display: none;
+  /* none; block */
+}
+
+/*   #fr1{
+  display: block;   
+} */ 
+
+#dropArea {
+  margin: auto ;   
+  float: left; 
+  width: 95%;
+  height: 30%;
+  background-color: #aaaaaa ;   
+  background-color: #cccccc;
+  border: 1px solid #000000;    
+}
+
+#div1,
+#div2,
+#div3,
+#div4 {
+  margin: auto;  
+  float: left;
+  width: 24.2%;
+  height: 99%;   
+  /* 50 %   */
+  border: 1px solid #aaaaaa;
+  background-color: #cccccc
+    /*  #ddd;   */
+}
+
+#div1 #fr1 {
+  margin-left: 1.5%;
+}
+
+/* drop area plaatjes: */
+#div1 img,
+#div2 img,
+#div3 img,
+#div4 img {
+  margin: auto ; 
+  margin-left: 5% ; 
+  margin-top: 5% ;
+  width: 90%;
+  height: 90%;
+ /*  margin-left: 25%;   */
+ /*  margin-top: 25%    */
+ background-color: #cccccc; 
+}
+
+#reset{
+  position: absolute;
+  right: 15%; 
+  top: 15%; 
+  height:  10vw;
+  width: 10vw; 
+  text-align: center;
+  border-radius: 50%;
+  background-color: white;
+  color: darkgreen;
+  border: 5px solid darkgreen;  
+  text-transform: lowercase; 
+  z-index: +10; 
+}
+#reset::first-letter {
+  text-transform: uppercase;
+  font-weight: bold;
+}
+#reset b:nth-child(1){
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+#messveld {
+  position: absolute; 
+  margin: auto ; 
+  margin-left: 25%;    
+  margin-top: 15%;
+  float: left ; 
+  color: #555555;
+ /*  left: 30%;   */ 
+}
+
+.unselectable {
+  /* speciaal voor touch devices */
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  /* Safari */
+  -webkit-user-select: none;
+  /* Chrome */
+  -moz-user-select: none;
+  /* Firefox */
+  -ms-user-select: none;
+  /* Internet Explorer/Edge */
+}

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>camera array with just one Head.</title>
+	<meta charset="utf-8">
+	<!-- 
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		-->
+	<meta name="author" content=" Rob van Cooten. Waalre. ">
+	<meta name="keywords" content="3D models, Threejs, Ceramics">
+	<!--  https://sourceforge.net/projects/three-js.mirror/  -->
+	<meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+	<link type="text/css" rel="stylesheet" href="css/main.css">
+	<link type="text/css" rel="stylesheet" href="css/menu.css">
+	<link rel="icon" type="image/x-icon" href="./images/kop.ico">
+	<style>
+		body {
+			/*  cursor:none;    */
+			cursor: url(./images/kop.ico), auto;
+		}
+	</style>
+	<!-- 
+		<script src="https://code.jquery.com/jquery-3.6.1.min.js"
+			integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" crossorigin="anonymous">
+			</script>   -->
+	<script defer src="./build/jquery3.6.1.js"></script>
+
+</head>
+
+<body>
+	<div id="menu">
+		<!-- dynamysche tekst-->
+	</div>
+
+	<script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+				}
+			}
+		</script>
+
+	<script type="module">
+		import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+		import * as THREE from 'three';
+
+		import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+		import { OrbitControls } from './jsm/controls/OrbitControls.js';
+
+		let camera, scene, renderer;
+		let controls;   // touch mouse controls
+
+		let windowHalfX = window.innerWidth / 2;
+		let windowHalfY = window.innerHeight / 2;
+		const AMOUNT = 5;
+		let WIDTH = (window.innerWidth / AMOUNT) * window.devicePixelRatio;
+		let HEIGHT = (window.innerHeight / AMOUNT) * window.devicePixelRatio;
+
+		let mouseX = 0, mouseY = 0;
+		let move = true; let teller = 0;
+		let muisDown = false;
+		let object = null;
+		let modellen = [];
+		let nummer;
+		let pad;
+
+		init();
+		animate();
+
+		function init() {
+
+			maakMenu();
+			maakPAD();
+			maakScene();
+			maakBelichting();
+			
+			maakFrame();
+			leesModel();
+			laadModel();
+			maakRenderer();
+
+			startOrbitController(); 
+
+			window.addEventListener('resize', onWindowResize);
+			window.addEventListener('mousemove', onDocumentMouseMove);    // mouse posities. 
+
+			// touchdevices inclusief muis: 
+			//		window.addEventListener("mousedown", onDocumentMouseDown);
+
+
+			$("html").mousedown(function (event) {
+				move = !move;
+				mouseX = (event.clientX - windowHalfX) / 2;
+				mouseY = (event.clientY - windowHalfY) / 2;
+				//  alert("mouseX: " + mouseX)
+			});
+
+		}   // einde init. 
+
+		function dumpObject(obj, lines = [], isLast = true, prefix = '') {
+			const localPrefix = isLast ? '└─' : '├─';
+			lines.push(`${prefix}${prefix ? localPrefix : ''}${obj.name || '*no-name*'} [${obj.type}]`);
+			const newPrefix = prefix + (isLast ? '  ' : '│ ');
+			const lastNdx = obj.children.length - 1;
+			obj.children.forEach((child, ndx) => {
+				const isLast = ndx === lastNdx;
+				dumpObject(child, lines, isLast, newPrefix);
+			});
+			return lines;
+		}
+
+		// manager
+		function laadModel() {
+			// alert("laden"); 
+			//    let model = pad + modellen[nummer] + '.glb';
+			let model = modellen[nummer];
+			//	console.log("model: " + model)
+			const loader = new GLTFLoader();
+
+			loader.load(model, function (gltf) {
+				//   alert("nummer: " + nummer ) ; 
+				object = gltf.scene.children[0];
+				//   console.log("nummer: " + nummer)
+				//  koppen[nummer] = kop;
+				object.position.y = -5;
+				scene.add(object);
+				//	console.log(dumpObject(object).join('\n'));
+				//	car = object.getObjectByName('geinVogel1');
+			},
+				function (onLoad) {
+					// alert("loaded"); 
+					// 	console.log('loaded');
+				},
+				// called when loading has errors
+				function (error) {
+					//  if (loc == "localhost")
+					//      alert("o o an error while loading: " + nummer + " kop");
+					console.log('O, 0 An error happened during loading');
+				}
+			);    // einde loader
+		}   // einde laadModel
+
+		// Voor Roteren: 
+		function onDocumentMouseMove(event) {
+			mouseX = (event.clientX - windowHalfX) / 2;
+			mouseY = (event.clientY - windowHalfY) / 4;
+			// alert(mouseY);
+
+		}
+		/*
+		function onDocumentMouseDown(event) {
+			move = !move;
+			mouseX = (event.clientX - windowHalfX) / 2;
+			mouseY = (event.clientY - windowHalfY) / 2;
+			// console.log("mouseDown");
+			// 	console.log("move: " + move);
+			alert("move: " + move);
+		}    */
+
+		function onWindowResize() {
+
+			const ASPECT_RATIO = window.innerWidth / window.innerHeight;
+			WIDTH = (window.innerWidth / AMOUNT) * window.devicePixelRatio;
+			HEIGHT = (window.innerHeight / AMOUNT) * window.devicePixelRatio;
+
+
+			windowHalfX = window.innerWidth / 2;
+			windowHalfY = window.innerHeight / 2;
+
+			camera.aspect = ASPECT_RATIO;
+			camera.updateProjectionMatrix();
+
+			for (let y = 0; y < AMOUNT; y++) {
+
+				for (let x = 0; x < AMOUNT; x++) {
+
+					const subcamera = camera.cameras[AMOUNT * y + x];
+					//const subcamera = camera.cameras[ 0 ];
+
+					subcamera.viewport.set(
+						Math.floor(x * WIDTH),
+						// Math.floor(0 ),
+						Math.floor(y * HEIGHT),
+						// Math.floor(0), 
+						Math.ceil(WIDTH),
+						// Math.ceil(5*WIDTH),
+						Math.ceil(HEIGHT)
+					);
+
+					subcamera.aspect = ASPECT_RATIO;
+					subcamera.updateProjectionMatrix();
+
+				}
+
+			}
+			renderer.setSize(window.innerWidth, window.innerHeight);
+		}
+
+		let r = +1;
+		function animate() {
+			if (object != null && move == true) {
+				if (object.rotation.z > 1.0)
+					r = -1;
+				if (object.rotation.z < -1.0)
+					r = +1;
+				object.rotation.z += 0.015 * r;  // let op z-as is y as bij glb object. 
+
+			}
+			else if (object != null && move == false) {
+				//	object.rotation.z = (mouseX) * .005;
+				//	object.rotation.x = (mouseY) * .005;
+			}
+			// werkt niet: 
+			controls.update();   // only required if controls.enableDamping = true
+
+			requestAnimationFrame(animate);
+			render();
+
+		}
+
+		function render() {
+			renderer.render(scene, camera);
+		}
+
+		function startOrbitController() {
+			controls = new OrbitControls(camera, renderer.domElement);
+			controls.addEventListener('change', render);
+			controls.listenToKeyEvents(window);    // pijltjes toetsen.
+			//	controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+			//		controls.dampingFactor = 0.05;
+
+			controls.minPolarAngle = Math.PI * 0.5;     // tilt. , x as.            
+			controls.maxPolarAngle = Math.PI * 0.5;
+
+			controls.minAzimuthAngle = -Math.PI * 0.25;      // rot y as.
+			controls.maxAzimuthAngle = +Math.PI * 0.4;
+
+			//controls.target.set(0, 10, 0);
+			controls.minDistance = 50.0;
+			controls.maxDistance = 400.0;
+
+			controls.update();
+		}
+
+		function maakMenu() {
+			let menu = document.getElementById("menu");
+			if (isTouchDevice())
+				menu.innerHTML = leesMenuTekst() + "1 Head, " + AMOUNT * AMOUNT + " cameras. Touch to stop.";
+			else
+				menu.innerHTML = leesMenuTekst() + "1 Head, " + AMOUNT * AMOUNT + " cameras. Press mouse to start/stop. Zoom not allowed.";
+
+			kleurActiveLink();
+		}  // einde menu
+
+		function maakPAD() {
+			let loc = location.hostname;
+			if (loc == "localhost")
+				pad = "./modellen/glb/"
+			else
+				pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+		}
+
+		function maakScene() {
+			const ASPECT_RATIO = window.innerWidth / window.innerHeight;
+
+			const cameras = [];
+
+			for (let y = 0; y < AMOUNT; y++) {
+
+				for (let x = 0; x < AMOUNT; x++) {
+
+					const subcamera = new THREE.PerspectiveCamera(40, ASPECT_RATIO, 0.1, 500);  // 10
+					subcamera.viewport = new THREE.Vector4(Math.floor(x * WIDTH), Math.floor(y * HEIGHT), Math.ceil(WIDTH), Math.ceil(HEIGHT));
+					subcamera.position.x = (x / AMOUNT) - 0.5;
+					subcamera.position.y = 0.5 - (y / AMOUNT);
+					subcamera.position.z = 25 + 5 * y // y is new. 
+					subcamera.rotation.x = 0.1 * x;
+					subcamera.rotation.y = 1 * x;  // new  
+					subcamera.position.multiplyScalar(2);   // 2 
+					subcamera.lookAt(0, 0, 0);
+					subcamera.updateMatrixWorld();
+					cameras.push(subcamera);
+
+				}
+
+			}
+
+			camera = new THREE.ArrayCamera(cameras);
+			//	camera.position.z = 1500;   // 30  werkt niet. 
+
+			scene = new THREE.Scene();
+			scene.background = new THREE.Color(0x000000);
+			scene.add(camera);
+		}   // einde maakScene
+
+		function maakRenderer() {
+			renderer = new THREE.WebGLRenderer();
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			renderer.shadowMap.enabled = true;
+			document.body.appendChild(renderer.domElement);
+		}
+
+		function leesModel() {
+			modellen[0] = pad + 'bladerKop' + '.glb';
+			modellen[1] = pad + 'geinVogel1' + '.glb';
+			modellen[2] = pad + 'ladyHead' + '.glb';  //   werkt HIER niet zo goed, posities!!				 
+			modellen[3] = pad + 'sloffie' + '.glb';
+
+			// alert(" model: " + modellen[0]);  
+			let max = modellen.length;
+			nummer = Math.floor(Math.random() * max);
+			//	alert("nummer: " + nummer)
+
+		}
+
+		function maakBelichting() {
+			scene.add(new THREE.AmbientLight(0x222244));
+
+			const lightD = new THREE.DirectionalLight(0xffffff, 5);
+
+			// const directionalLight = new THREE.DirectionalLight(0xaaffaa, 5.5); 
+
+			lightD.position.set(0.5, 0.5, 1);
+			lightD.castShadow = true;
+			lightD.shadow.camera.zoom = 4; // tighter shadow map
+			scene.add(lightD);
+		}
+
+		function maakFrame() {
+			let w = 1.4 * WIDTH / AMOUNT;
+			let h = 1.8 * HEIGHT / AMOUNT;
+			const geometryBackground = new THREE.PlaneGeometry(w, h);   // 100 100
+			const materialBackground = new THREE.MeshPhongMaterial({ color: 0x003300 });
+
+			const background = new THREE.Mesh(geometryBackground, materialBackground);
+			// 	background.receiveShadow = true;
+			background.position.set(0, 0, 0);    //  x, y, diepte z. 
+			scene.add(background);
+
+			// Frame om object maken: 
+			// boven
+			let kleurBalk = 0x660066;
+			let materialBalk = new THREE.MeshPhongMaterial({ color: kleurBalk });
+			let balkB = new THREE.Mesh(new THREE.BoxGeometry(w, h, 1), materialBalk);
+			//	balkB.position.set(0, 0.5 * h, 0);
+			balkB.position.set(0, 0, -10);
+			scene.add(balkB);
+			// alert(h);
+			// alert(w);
+			// links: 
+			let balkL = new THREE.Mesh(new THREE.BoxGeometry(3, 1.5 * h, 3), materialBalk);
+			balkL.position.set(-0.5 * w, 0, 0);
+			//scene.add(balkL);
+
+
+			// onder:  
+			let balkO = new THREE.Mesh(new THREE.BoxGeometry(w, 3, 3), materialBalk);
+			balkO.position.set(0, -0.5 * h, 0);
+			//scene.add(balkO);
+
+
+			// rechts: 
+			let balkR = new THREE.Mesh(new THREE.BoxGeometry(3, 1.5 * h, 3), materialBalk);
+			balkR.position.set(+0.5 * w, 0, 0);
+			//scene.add(balkR);
+		}
+
+	</script>
+
+</body>
+
+</html>

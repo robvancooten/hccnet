@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!--  http://localhost/www/hccnet/Website_3D_Beelden/all.html  -->
+    <!--   <meta http-equiv="refresh" content="5">   -->
+    <title>Funny sphere with all Heads......</title>
+    <meta charset="UTF-8">
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D models, Threejs, Ceramics">
+    <!--  https://sourceforge.net/projects/three-js.mirror/  -->
+    <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link href="css/menu.css" rel="stylesheet" type="text/css">
+    <link rel="shortcut icon" href="./images/ernie.ico">
+    <style>
+        body {
+            cursor: url(./images/biglips.cur), auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="menu">
+        <!-- tekst dynamisch-->
+    </div>
+    <div id="container"></div>
+
+    <!-- Import maps polyfill -->
+    <!-- Remove this when import maps will be widely supported   -->
+    <!-- script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script  -->
+    <script async src="./build/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+        import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+        import { RGBELoader } from './jsm/loaders/RGBELoader.js';  // voor renderer
+
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+        import { leesModellen, modellen } from './my_js/all_modellen.js';
+        //    import { maakCorrectieArray, correctieArray } from './my_js/correctieArrayforAll.js';
+        import { maakCorrectieArray, correctieArray } from './my_js/correctieArrayforAll.js';
+        import { FontLoader } from './jsm/loaders/FontLoader.js';
+        import { TextGeometry } from './jsm/geometries/TextGeometry.js';
+
+        var scene, camera, renderer;
+        let controls;
+        //   let breedte = 32;  //512;
+        const radius = 300; // straal vertices. 
+        let lightHolder;
+        let spotLight;
+
+        let kop;
+        let schaalKop = 3.5;
+        const koppen = [];  // standaard null 
+        let nummer = 0;
+        let pad;
+        let spotlight, helper;
+        let sphere;  // de bol.
+        let bol3, textMesh;
+        let max;
+        let richting = +1;
+        let loc;   // localhost; 
+        let mess;
+        let puntjes = ".";
+        let testen = true;  //  true ;  // false;
+
+        init();
+        animate();
+
+        function init() {
+            maakCorrectieArray();
+            leesModellen();
+            max = modellen.length;
+            //  max = 15;
+
+            maakMenu();
+            maakScene();
+
+            myrenderer();
+           // textMesh = maakTekst("Started");
+            maakBol();
+            maakBelichting();
+            laadModel();
+
+            startOrbitControls();
+
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+            window.addEventListener('resize', onWindowResize);
+        }   // einde init
+
+        /******************************************************************************************/
+        function maakBol() {
+            const geometry = new THREE.SphereGeometry(radius * 0.9, 16, 32);
+            const texture = new THREE.TextureLoader().load('images/blad.jpg');
+            const mat = new THREE.MeshPhongMaterial({
+                map: texture,
+                color: 0xcccccc,
+                shininess: 150,
+                //    side: THREE.DoubleSide,
+                side: THREE.FrontSide,
+                emissive: 0x001100,   // 'darkgreen'
+                specular: 0x001500,
+                //  receiveShadow : true    alleen lambert. 
+                //  reflectivity: beta,
+                //  shininess: specularShininess,
+
+            });
+
+            /*************    Bump MAP    ***************/
+            const bumpTexture = new THREE.TextureLoader().load('images/blad_bump.jpg');
+            mat.bumpMap = bumpTexture;
+            mat.bumpScale = 10.45;
+            /************* Einde   Bump MAP    ***************/
+
+            // const material = new THREE.MeshBasicMaterial({ color: 0xcccccc });
+            sphere = new THREE.Mesh(geometry, mat);
+            if (testen == false)
+                scene.add(sphere);
+
+        }    // einde maakBol 
+
+        function vulBol(n) {
+            nummer = n;
+            //  alert(nummer); 
+            let phi, theta; // theta - equator angle in radians around the y (up) axis.
+            let aantal = max;
+            let punt = new THREE.Vector3().setFromSphericalCoords(radius, phi, theta);
+
+            phi = Math.PI * 0.5;
+            theta = 2 * Math.PI * (nummer / aantal);
+            // console.log("theta: " + theta);
+
+            koppen[nummer].rotation.z = - theta;  //  glb model ander x,y,z assen.          
+
+            //theta is rond om de y-as. 
+            koppen[nummer].position.setFromSphericalCoords(radius, phi, theta);
+
+            koppen[nummer].scale.x = koppen[nummer].scale.y = koppen[nummer].scale.z = schaalKop;  // 5.5
+            //   koppen[0].scale.x = koppen[0].scale.y = koppen[0].scale.z = 7;  // 5.5
+
+            if ((nummer % 2) == 0 && testen == true) {
+             /*
+                bol3 = maakBol3();
+                if (koppen[nummer] != null) {
+                    bol3.position.x = koppen[nummer].position.x;
+                    bol3.position.y = koppen[nummer].position.y;
+                    bol3.position.z = koppen[nummer].position.z;
+                    //    bol3.position.y = +100 ;                                                                        
+                }  */
+                textMesh = maakTekst("" + nummer);
+                if (koppen[nummer] != null) {
+                    textMesh.position.x = koppen[nummer].position.x;
+                    textMesh.position.y = koppen[nummer].position.y;
+                    textMesh.position.z = koppen[nummer].position.z;
+                    //     textMesh.position.y = +100 ; 
+                    textMesh.rotation.y = theta;
+                }
+            }  // einde even teller. 
+
+
+            let deltaX = corrigeerPositieX(nummer);   // * schaalKop;
+            let deltaY = corrigeerPositieY(nummer);  // * schaalKop;
+            let deltaZ = corrigeerPositieZ(nummer);  //* schaalKop;
+
+            koppen[nummer].position.x += + deltaX;   // + 300;
+            koppen[nummer].position.y += + deltaY;  // + is omhoog
+            koppen[nummer].position.z += + deltaZ;
+
+            scene.add(koppen[nummer]);
+            //   console.log("nummer: " + nummer);
+        }   // einde vulbol
+
+        function maakBol3() {
+            let straal = 25;
+            let geo = new THREE.SphereGeometry(straal, 16, 8);
+            let mat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            bol3 = new THREE.Mesh(geo, mat);
+            //   console.log("bol3.position:    " + bol3.position)
+            scene.add(bol3);
+            return bol3;
+        }
+
+        function laadModel() {
+            let model = pad + modellen[nummer] + '.glb';
+            //  console.log("model: " + model)
+            const loader = new GLTFLoader();
+
+            loader.load(model, function (gltf) {
+                //   alert("nummer: " + nummer ) ; 
+                kop = gltf.scene.children[0];
+                //    console.log("nummer: " + nummer) ; 
+                kleurObject();
+                toonPivot();
+                normeerKop(kop);
+                centerPivot(kop);
+
+                koppen[nummer] = kop;
+                //   scene.add(koppen[nummer]);
+                vulBol(nummer);
+            },
+                function (xhr) {
+                    let proc = + 100 * xhr.loaded / xhr.total;
+                    proc = proc.toFixed(0) + "%";
+                    if (proc == '118%' || proc == '100%') {
+                        proc = '';
+                    }
+                    // let navigator = document.getElementById("navigator");
+                    // menu.css('marginLeft', '20px');
+
+                    puntjes = ".";
+                    menu.innerHTML = leesMenuTekst() + "Loading...." + puntjes + nummer + "/" +max ;
+
+                    if (nummer == (max - 1))
+                        menu.innerHTML = mess
+
+                    kleurActiveLink();
+                    //  navigator.innerHTML = mess;
+                },
+                function (onLoad) {
+                    // alert("loaded"); 
+                    // 	console.log('loaded');
+                },
+                // called when loading has errors
+                function (error) {
+                      if (loc == "localhost")
+                           alert("o o an error while loading: " + nummer + " kop");
+                    console.log('O, 0 An error happened during loading');
+                }
+            );    // einde loader
+        }   // einde laadModel
+
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (koppen[nummer] != null) {  // als er 1 is geladen: 
+
+                if (nummer < max - 1) {
+                    nummer++;
+                    laadModel();  // laadt de volgende
+                }
+            }
+            let rot = controls.getAzimuthalAngle();
+            if (rot < controls.minAzimuthAngle + 0.01)
+                richting = -1
+            else if (rot > controls.maxAzimuthAngle - 0.01)
+                richting = +1;
+
+            controls.autoRotateSpeed = -3.0 * richting;  //2.4 * r;
+            lightHolder.quaternion.copy(camera.quaternion);
+            if (textMesh != null)
+                textMesh.quaternion.copy(camera.quaternion);
+            controls.update();
+            render();
+        }  // einde animate
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+
+        function startOrbitControls() {
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.addEventListener('change', render);
+
+            controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+            controls.dampingFactor = 0.05;
+
+            //    controls.minPolarAngle = Math.PI * 0.35;     // tilt. , x as.            
+            //    controls.maxPolarAngle = Math.PI * 0.6;
+
+            // controls.minAzimuthAngle = -Math.PI * 0.25;      // rot y as.
+            //   controls.maxAzimuthAngle = Math.PI * 0.4;
+
+            controls.minDistance = 1.5 * radius;    // 500 
+            controls.maxDistance = 5500;     // 1500 tevens startpositie camera
+
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 2.4;   // 2 is default. 
+            controls.update();
+        }
+
+        function maakBelichting() {
+            let intens = 0.4
+            // const ambientLight = new THREE.AmbientLight(0xcccccc, intens);
+            // scene.add(ambientLight);   // voor kop!
+
+            // White directional light at half intensity shining from the top: 0,5 
+            intens = 10;
+            const directionalLight = new THREE.DirectionalLight(0xaaffaa, intens);  // voor pointlight leuk belichten.
+            directionalLight.position.set(+radius * 15, +radius * 15, radius * 1.5);
+
+            scene.add(directionalLight);
+
+            //  lightHolder.quaternion.copy(camera.quaternion); // in the animation loop, dan stilstaande lamp.
+
+            intens = 60;
+            spotLight = new THREE.SpotLight(0x00bb00, intens);
+            spotLight.position.set(200, 100, 1000);
+            spotLight.angle = Math.PI * 0.03;
+            spotLight.penumbra = 0;   // 0..1  breed naar smal.
+            spotLight.decay = 0;
+            spotLight.distance = berekenAfstandSpotLightBol() - radius + 250;
+
+            let spotlightHelper = new THREE.SpotLightHelper(spotLight);
+
+            lightHolder = new THREE.Group();
+            lightHolder.add(spotLight);
+            lightHolder.add(spotlightHelper);
+
+            scene.add(lightHolder);
+        }
+        function maakMenu() {
+            let menu = document.getElementById("menu");
+            if (isTouchDevice())
+                menu.innerHTML = leesMenuTekst() + "Planet with " + max + " Heads - use fingers to zoom, rotate - Touch for reverse and stop.";
+            else
+                menu.innerHTML = leesMenuTekst() + "Planet with " + max + " Heads - Zoom with mousewheel - MouseLeft for reverse and stop.";
+
+            mess = menu.innerHTML;
+            kleurActiveLink();
+
+            loc = location.hostname;
+            if (loc == "localhost")
+                pad = "./modellen/glb/"
+            else
+                pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+
+        }
+        function maakScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x003300);
+            //   scene.background = new THREE.Color(0x003300);
+
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 45, 30 * 1000);
+            camera.position.z = 1000;  // 1000
+            //  camera.lookAt(new THREE.Vector3(1, 1, 1))
+        }
+
+        function myrenderer() {
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 0.4;   // dit scheelt veel. 
+            // renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.shadowMap.enabled = true;  // new
+            renderer.colorManagement = true; // voor blender glb export . 
+            document.body.appendChild(renderer.domElement);
+        }
+
+        function renderer1() {
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+        }
+
+        function kleurObject() {
+            kop.traverse((o) => {
+                if (o.isMesh) {
+                    o.material.emissive = new THREE.Color(0x333333);  //  333333
+                    o.material.metalness = 0.0;  // 0..1 ;  1 is mat. 
+                }
+            });
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        function toonPivot() {
+            // https://discourse.threejs.org/t/object3d-pivot-axis-position/51130/5
+            let position = new THREE.Vector3();
+            kop.getWorldPosition(position);
+            //   console.log("Kop position.y: " + position.y);
+            // NOTE Now `position` will give you the world-space position of the object / pivot
+        }
+        function centerPivot(kop) {
+            let box3 = new THREE.Box3().setFromObject(kop);
+            const low = box3.min;
+            const high = box3.max;
+            const corner1 = new THREE.Vector3(low.x, low.y, low.z);
+            const corner8 = new THREE.Vector3(high.x, high.y, high.z);
+            const transform = new THREE.Vector3(0, 0, 0,);
+            //    transform = ( corner1 - corner8 ) / 2;                     
+
+            kop.position.x = kop.position.x - (high.x + low.x) / 2;
+            //    kop.position.y = kop.position.y - (high.y + low.y) / 2;
+            kop.position.y = kop.position.y - 10;  //  low.y;        
+            kop.position.z = kop.position.z - (high.z + low.z) / 2;
+            //   console.log("transform.x: "  +  (high.x  + low.x)/2 ); 
+        }
+
+        function normeerKop(kop) {
+            let hoogte = berekenHoogte(kop);
+            let scaleFactor = 17 / hoogte;
+            // hoogte = Math.round(hoogte);
+            // alert("hoogte: " + hoogte);
+            kop.scale.multiplyScalar(scaleFactor);  // 50    
+        }
+
+        function berekenHoogte(kop) {
+            let box3 = new THREE.Box3().setFromObject(kop);
+            let size = new THREE.Vector3();
+            box3.getSize(size);
+            //   console.log("size: " + size.y);
+            return size.y;
+        }
+
+        function corrigeerPositieX(nr) {
+            return correctieArray[nr].x;
+        }
+        function corrigeerPositieY(nr) {
+            //   console.log("correctieY: " + nr + ": " + correctieArray[nr].y) ;
+            return correctieArray[nr].y;
+        }
+        function corrigeerPositieZ(nr) {
+            return correctieArray[nr].z;
+        }
+        function berekenAfstandSpotLightBol() {
+            let a = sphere.position.x - spotLight.position.x;
+            let b = sphere.position.y - spotLight.position.y;
+            let c = sphere.position.z - spotLight.position.z;
+            let d = Math.sqrt(a * a + b * b + c * c);
+            //    alert("afstand: " + d) ; 
+            return d;
+        }
+        function onPointerDown(event) {
+            let mouseX;
+            mouseX = event.pageX - event.target.offsetLeft;
+            mouseX = mouseX - 0.5 * window.innerWidth;
+            //  alert(textMesh) ;
+
+            if (textMesh != null) 
+            {
+                scene.remove(textMesh);
+                textMesh.position.y = -100*radius;
+            }
+
+            let punt = new THREE.Vector3(-radius, +radius * 1.5, 0);
+
+            if (mouseX > 0 && richting == -1) {
+                richting = 0;
+                punt = new THREE.Vector3(0, +radius * 1.5, 0);
+                textMesh = maakTekst("Stopped", punt);
+                //  textMesh.position.set(-radius, -radius, 0);
+            }
+            else
+                if (mouseX > 0) {
+                    richting = -1;
+                punt = new THREE.Vector3( 0, +radius * 1.5, 0);  // +3*radius 
+                    textMesh = maakTekst("Right >>", punt);
+                    //  textMesh.position.set(-radius * 1.1, -radius, 0); / x = 10 ; / / -radius;
+                    //    textMesh.position.y = -radius;
+                }
+
+            if (mouseX < 0 && richting == +1) {
+                richting = 0;
+                punt = new THREE.Vector3(0, +radius * 1.5, 0);
+                textMesh = maakTekst("Stopped", punt);
+                // textMesh.position.y = -radius;
+            }
+            else
+                if (mouseX < 0) {
+                    richting = +1;
+                punt = new THREE.Vector3(0, +radius* 1.5, 0);
+                    textMesh = maakTekst("<< Left", punt);
+                    //   textMesh.position.y = -radius;
+                    //   textMesh.position.x = -radius * 1.1;
+                }
+            // alert(); 
+            //   textMesh.position= punt ; // .set(-350 , +350, 100);
+
+        }   // einde pointerdown.
+
+        //   async 
+        function maakTekst(tekst = "Hallo", punt = new THREE.Vector3(0, 0, 0)) {
+            const loader = new FontLoader();
+            let font = undefined,
+                fontName = 'optimer', // helvetiker, optimer, gentilis, droid sans, droid serif
+                fontWeight = 'bold'; // normal bold
+            //    await
+            loader.load('./fonts/helvetiker_regular.typeface.json', function (font) {
+                const textGeo = new TextGeometry(tekst, {
+                    font: font,
+                    size: 80,
+                    height: 5,
+                    curveSegments: 12
+                });   // einde load
+
+                const materials = [
+                    new THREE.MeshBasicMaterial({ color: 0xff0000 }), // front
+                    new THREE.MeshBasicMaterial({ color: 0x555555 }) // side
+                ];
+
+                textMesh = new THREE.Mesh(textGeo, materials);
+                textMesh.scale.z = 0.05;
+
+                //    console.log("Tekst:" + tekst);
+                textMesh.position.x = punt.x ;                 
+                textMesh.position.y = punt.y;        // set(punt);  
+                textMesh.position.z = punt.z ; 
+                                
+                scene.add(textMesh);
+            });
+            return textMesh;
+        }        
+    </script>
+</body>
+
+</html>

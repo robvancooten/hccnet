@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>Een kop via een kokertje, 3D masker.</title>
+	<meta charset="utf-8">
+	<!-- 
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		-->
+	<meta name="author" content=" Rob van Cooten. Waalre. ">
+	<meta name="keywords" content="3D models, Threejs, Ceramics">
+	<meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+	<link type="text/css" rel="stylesheet" href="css/main.css">
+	<link href="css/menu.css" rel="stylesheet" type="text/css">
+	<link rel="shortcut icon" href="./images/ernie.ico">
+	<style>
+		div {
+			/* .unselectable  */
+			/* speciaal voor touch devices */
+			-webkit-user-select: none;
+			-webkit-touch-callout: none;
+			-moz-user-select: none;
+			-ms-user-select: none;
+			user-select: none;
+			-webkit-touch-callout: none;
+			/* Safari */
+			-webkit-user-select: none;
+			/* Chrome */
+			-moz-user-select: none;
+			/* Firefox */
+			-ms-user-select: none;
+			/* Internet Explorer/Edge */
+		}
+	</style>
+
+</head>
+
+<body>
+	<div id="menu">
+
+	</div>
+
+	<!-- Import maps polyfill -->
+
+	<script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+				}
+			}
+		</script>
+
+	<script type="module">
+		import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+		import * as THREE from 'three';
+
+		import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+
+		import { OrbitControls } from './jsm/controls/OrbitControls.js';
+
+		let container, menu;
+
+		let camera, scene, renderer;
+		let controls;   // Orbit touch mouse controls
+
+		//	let mouseX = 0, mouseY = 0;
+
+		let windowHalfX = window.innerWidth / 2;
+		let windowHalfY = window.innerHeight / 2;
+
+		let kop, vlak;
+		let schaal = 0.8;
+		let ellips = false;
+
+		let pad;
+		let nummer = 0;
+		let modellen = new Array();
+		let spotLight1, lightHelper;
+
+		let move = true;
+		let richting = +1;
+		let dx = +1;
+
+		init();
+		animate();
+
+
+		function init() {
+			maakMenu();
+			maakScene();
+
+			maakBelichting();
+			bepaalPad();
+			leesModelNamen();
+
+			laadModel();
+			maakMasker();
+			maakRenderer();
+
+			startOrbitController();
+
+			window.addEventListener('resize', onWindowResize);
+			container.addEventListener("pointerdown", pressingDown, false);
+
+		}   // einde init
+
+		function onWindowResize() {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize(window.innerWidth, window.innerHeight);
+		}
+
+
+		function animate() {
+			requestAnimationFrame(animate);
+			//	if (controls!=null)
+			//  			controls .update(); // only required if controls.enableDamping = true
+			render();
+		}
+
+		function render() {
+			if (vlak != null && move) {
+				vlak.position.z = camera.position.z * 0.7;
+				if (vlak.position.x > 7)   // camera.position.x * 1.0 )
+					dx = -1;
+				if (vlak.position.x < - 7)  // camera.position.x * 0.5 ) 
+					dx = +1;
+				// console.log("dx: " + dx);
+				if (dx == 1)
+					vlak.position.x = vlak.position.x + 0.051;   //  * dx; 
+				else
+					vlak.position.x = vlak.position.x - 0.051;
+
+				vlak.position.y += 0.10 * Math.sin(vlak.position.x);
+				// vlak.rotation.z += 0.015 ; 
+				//vlak.position.y = +1.7;  //  - camera.position.y * 0.01;
+				//vlak.position.x = camera.position.x * 1.0;
+
+				// console.log("camera.position.x " + camera.position.x);
+			}
+			if (kop != null) {
+				if (kop.rotation.z > 0.5)
+					richting = -1;
+				if (kop.rotation.z < -0.5)
+					richting = +1;
+
+				kop.rotation.z += 0.005 * richting;
+			}
+			renderer.render(scene, camera);
+		}
+		function kleurObject() {
+			kop.traverse((o) => {
+				if (o.isMesh) {
+					o.material.emissive = new THREE.Color(0xff0000);
+					o.material.metalness = 0.0;  // 0..1 
+				}
+			});
+		}
+		function maakMasker() {
+			let textureLoader = new THREE.TextureLoader();
+			let textu = textureLoader.load('images/circel.jpg');
+			//textureLoader.load('images/circel.jpg');
+			//	textu = textureLoader.load('images/bloem.png');
+			//	textu = textureLoader.load('images/bloem.jpg');								
+
+			let geometry = new THREE.BoxGeometry(80, 60, 10);   // w, h, depth 
+			let material = new THREE.MeshBasicMaterial({ color: 0x300000 });
+			material = new THREE.MeshPhongMaterial({
+				color: 0x10A010, transparent: true,   //  0x135313
+				opacity: 0.5, alphaMap: textu, side: THREE.DoubleSide
+				// opacity: 0.71 , alphaMap: textu, side: THREE.DoubleSide
+			});
+			// alphaMap: 0x000000} );
+			vlak = new THREE.Mesh(geometry, material);
+			vlak.position.z = camera.position.z * 0.8;
+			//vlak.position.x =  3 ;				
+			vlak.position.y = 0;
+			vlak.scale.x = vlak.scale.y = vlak.scale.z = schaal;
+			vlak.rotation.y = -Math.PI / 10;
+			/*
+			vlak.rotation.x = Math.PI / 2;
+			vlak.rotation.y = Math.PI / 4;
+			vlak.rotation.z = Math.PI / 4;
+			*/
+			scene.add(vlak);
+		}
+		function laadModel() {
+			const loader = new GLTFLoader();
+
+			loader.load(modellen[nummer], function (gltf) {
+				kop = gltf.scene.children[0];
+
+				kop.scale.multiplyScalar(1.2);  // 50 
+				kop.position.y = 0;
+
+				scene.add(kop);
+				//  kleurObject();
+			},
+				// called while loading is progressing
+				function (xhr) {
+					;
+					// 	console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+				},
+				// called when loading has errors
+				function (error) {
+
+					console.log('O, 0 An error happened during loading');
+
+				}
+			);    // einde loader
+		}   // einde laadModel
+
+		function pressingDown(e) {
+			move = !move;
+			ellips = !ellips;
+			if (ellips) {
+				vlak.scale.x = schaal * 2;
+				vlak.scale.y = schaal * 2;
+				spotLight1.intensity = 20;
+				//	scene.add(lightHelper); 
+				//	startOrbitController();
+			}
+			else if (!ellips) {
+				vlak.scale.x = schaal;
+				vlak.scale.y = schaal;
+				spotLight1.intensity = 2;
+				//	scene.remove(lightHelper); 				
+			}
+			e.preventDefault();
+			// 	alert("PressingDown!" + ellips);
+		}
+
+		function leesModelNamen() {
+			modellen[0] = pad + 'bladerKop.glb';
+			modellen[1] = pad + 'geinVogel1.glb';
+			modellen[2] = pad + 'sloffie.glb';
+			modellen[3] = pad + 'ladyHead.glb';
+
+			let max = modellen.length;
+			nummer = Math.floor(Math.random() * max);
+		}
+
+		function maakMenu() {
+			menu = document.getElementById("menu");
+			if (isTouchDevice())
+				menu.innerHTML = leesMenuTekst() + "Touch finger to stop mask.";
+			else
+				menu.innerHTML = leesMenuTekst() + 'Press mouse to stop mask.';
+
+			kleurActiveLink();
+		}
+
+		function maakBelichting() {
+			let intens = 0.4;
+			const ambientLight = new THREE.AmbientLight(0xcccccc, intens);
+			scene.add(ambientLight);
+
+			intens = 1.6
+			const pointLight = new THREE.PointLight(0xffffff, intens);
+			camera.add(pointLight);
+
+			intens = 4.5;
+			const directionalLight = new THREE.DirectionalLight(0xffffff, intens);
+			directionalLight.position.set(100, 10, 50)
+			scene.add(directionalLight);
+
+			// SpotLight( color : Integer, intensity : Float, distance : Float, angle : Radians, penumbra : Float, decay : Float )
+			intens = 0.0;
+			spotLight1 = new THREE.SpotLight(0x55aa55, intens);
+			spotLight1.distance = 170;
+			spotLight1.angle = Math.PI * 0.04;
+			spotLight1.decay = 0;   // Anders zie Niks 
+			spotLight1.position.set(10, 10, 100);
+			spotLight1.target.position.set(0, 5, 0);
+
+			scene.add(spotLight1);
+
+			// lightHelper = new THREE.SpotLightHelper(spotLight1);
+			//  scene.add(lightHelper);
+
+		}
+
+		function bepaalPad() {
+			if (location.hostname == "localhost")
+				pad = "./modellen/glb/"
+			else
+				pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+
+		}
+
+		function maakScene() {
+			container = document.createElement('div');
+			document.body.appendChild(container);
+
+			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+			camera.position.z = 100;
+			// scene
+			scene = new THREE.Scene();
+			// 	scene.background = new THREE.Color(0x335533);
+			scene.add(camera);
+		}
+
+		function maakRenderer() {
+			renderer = new THREE.WebGLRenderer();
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			container.appendChild(renderer.domElement);
+		}
+
+		function startOrbitController() {
+			controls = new OrbitControls(camera, renderer.domElement);
+
+			controls.addEventListener('change', render);
+
+			//	controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+			//		controls.dampingFactor = 0.05;
+
+			controls.minPolarAngle = Math.PI * 0.5   //  0.35;     // tilt. , x as.            
+			controls.maxPolarAngle = Math.PI * 0.5   //  0.6;
+
+			controls.minAzimuthAngle = +Math.PI * 0.0  // -0.25;      // rot y as.
+			controls.maxAzimuthAngle = +Math.PI * 0.0  // 0.4;
+
+			//controls.target.set(0, 10, 0);
+			controls.minDistance = 50.0;
+			controls.maxDistance = 400.0;
+			controls.update();
+		}		
+	</script>
+
+</body>
+
+</html>

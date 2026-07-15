@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>point lights</title>
+    <meta charset="utf-8">
+    <!-- 
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        -->
+    <!-- <meta http-equiv="refresh" content="5">    -->
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D models, Threejs, Ceramics, shadows">
+    <!--  https://sourceforge.net/projects/three-js.mirror/  -->
+    <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="css/menu.css">
+    <style>
+        body {
+            /*  cursor:none;    */
+            cursor: url(./images/kop.cur), auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="menu">
+
+    </div>
+
+    <!-- Import maps polyfill -->
+    <!-- Remove this when import maps will be widely supported -->
+    <script async src="./build/es-module-shims.js"></script>
+
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+				}
+			}
+		</script>
+
+    <script type="module">
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+        import * as THREE from 'three';
+        import { TransformControls } from './jsm/controls/TransformControls.js';
+
+        import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+
+        let camera, scene, renderer;
+        let controls;   // touch mouse controls            
+        const focus = 100;
+
+        const ACTION_SELECT = 1, ACTION_NONE = 0;
+        let z = 70;
+        let rayCaster;
+        let action = ACTION_NONE;
+        let isTouching = false,
+            touchDevice = false;
+        let control;
+        let move = true;
+        const mouse = new THREE.Vector2();
+
+
+        let light = [], lightHolder;
+        let bol = [];
+        let pad = 'modellen/glb/';
+        const kopnaam = 'bladerKop';
+
+        let kop;
+        let breedte = 512;
+        let r = +1;
+
+        const clock = new THREE.Clock();
+
+        init();
+        animate();
+
+        function init() {
+            touchDevice = is_touch_enabled();
+            maakMenu();
+            maakScene();
+            maakBelichting();
+
+            maakPointLights();
+            maakKubus();
+
+                maakWand();
+
+            laadModel();
+            maakRenderer();
+            controlDrag();
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+
+            startOrbitController();
+        }    // einde init
+        /*************************************************************************/
+        function onWindowResize() {
+
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+        }
+        // let op: touchmove werkt soms, afhankelijk browser en device!
+        function is_touch_enabled() {
+            return ('ontouchstart' in window) ||
+                (navigator.maxTouchPoints > 0) ||
+                (navigator.msMaxTouchPoints > 0);
+        }
+
+        function maakPointLights() {
+
+            // bollampen : 
+            // PointLight( color : Integer, intensity : Float, distance : Number, decay : Float )
+            let intensity = 15;
+            let distance = 80;
+            let decay = 2;
+
+            // SphereGeometry(radius : Float, widthSegments : Integer, heightSegments :
+            let diameter = 5 * 1.6;   // 2
+            const sphere = new THREE.SphereGeometry(diameter, 32, 16);  // voor lights.  
+
+            let kl = 0x3333ff;
+            let mat = new THREE.MeshPhongMaterial({ color: kl, shininess: 200, reflectivity: 0.1 });
+            bol[0] = new THREE.Mesh(sphere, mat);
+            bol[0].castShadow = true;
+            scene.add(bol[0]);
+            light[0] = new THREE.PointLight(kl, intensity, distance, decay);   // decay 2 lijkt physica.
+            light[0].add(bol[0]);
+            // light[0].castShadow = true;
+            scene.add(light[0]);
+
+            kl = 0xaa55ff;
+            mat = new THREE.MeshPhongMaterial({ color: kl, shininess: 200, reflectivity: 0.1 });
+            bol[1] = new THREE.Mesh(sphere, mat);
+            bol[1].castShadow = true;
+            scene.add(bol[1]);
+
+            light[1] = new THREE.PointLight(kl, intensity, distance, decay);   // decay 2 lijkt physica.
+            // light[1].castShadow = true;
+            light[1].add(bol[1]);
+
+            kl = 0xaaaa55;
+            mat = new THREE.MeshPhongMaterial({ color: kl, shininess: 200, reflectivity: 0.1 });
+            bol[2] = new THREE.Mesh(sphere, mat);
+            bol[2].castShadow = true;
+            scene.add(bol[2]);
+            light[2] = new THREE.PointLight(kl, intensity, distance, decay);   // decay 2 lijkt physica.
+            //  light[2].castShadow = true;
+            light[2].add(bol[2]);
+
+            kl = 0xaa2222;
+            mat = new THREE.MeshPhongMaterial({ color: kl, shininess: 200, reflectivity: 0.1 });  // ffaa00 
+            bol[3] = new THREE.Mesh(sphere, mat);
+            bol[3].castShadow = true;
+            scene.add(bol[3]);
+            light[3] = new THREE.PointLight(kl, intensity, distance, decay);   // decay 2 lijkt physica.
+            light[3].add(bol[3]);
+
+            kl = 0x228B22;
+            mat = new THREE.MeshPhongMaterial({ color: kl, shininess: 200, reflectivity: 0.1 });
+            let bolleke4 = new THREE.Mesh(sphere, mat);
+            bolleke4.castShadow = true;
+            scene.add(bolleke4);
+            light[4] = new THREE.PointLight(kl, intensity, distance, decay);
+            light[4].add(bolleke4);
+
+            if (!touchDevice)
+                scene.add(light[4]);
+
+            lightHolder = new THREE.Group();
+            let aantal = 4;
+            if (touchDevice)
+                aantal = 3;
+            // alert(aantal);
+            for (let k = 0; k < aantal; k++)
+                lightHolder.add(light[k]);
+
+            scene.add(lightHolder);
+            //  lightHolder.quaternion.copy(camera.quaternion); // in the animation loop
+        }
+
+        function onPointerDown(event) {
+            //   alert(); 
+            action = ACTION_SELECT;
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = - (event.clientY / window.innerHeight) * 2 + 1.1;   // +1    
+            // alert(mouse.x);         
+        }
+
+        function animate() {
+            if (action === ACTION_SELECT) {
+                rayCaster.setFromCamera(mouse, camera);
+                action = ACTION_NONE;
+
+                let intersects = rayCaster.intersectObjects(bol, false);   // false
+                if (intersects.length) {
+                    //  alert("Raak"); 
+                    const target = intersects[0].object;
+                    control.attach(target);
+                    scene.add(control.getHelper());
+                }
+            }
+            requestAnimationFrame(animate);
+            controls.update();
+            lightHolder.quaternion.copy(camera.quaternion);
+            render();
+        }
+
+        function render() {
+            const time = Date.now() * 0.0005;
+            //    const delta = clock.getDelta();
+
+            camera.lookAt(scene.position);
+
+            if (kop != null) {
+                if (kop.rotation.z > 0.5)
+                    r = -1;
+                if (kop.rotation.z < -0.5)
+                    r = +1;
+                // r = 1;
+                kop.rotation.z += 0.005 * r;
+                //   bol.rotation.y += 0.005 * r;
+            }
+
+            let w = window.innerWidth;
+            let h = window.innerHeight;
+            //  console.log("w: " + w) ; 
+            z = 10;
+
+            light[0].position.x = Math.sin(time * 0.9) * 0.05 * w;
+            // light[0].position.y = Math.cos(time * 0.5) * 0.005 * h;
+            //   light[0].position.z = z + Math.abs(Math.cos(time * 0.3) * 1);
+
+
+            light[1].position.x = Math.cos(time * 0.8) * 0.05 * w;
+            light[1].position.y = Math.sin(time * 0.5) * 0.05 * h;
+            light[1].position.z = z + Math.abs(Math.sin(time * 0.7)) * 2;
+
+            light[2].position.x = Math.sin(time * 0.7) * 0.045 * w;
+            light[2].position.y = Math.cos(time * 0.3) * 0.05 * h;
+            light[2].position.z = z + Math.abs(Math.sin(time * 0.5)) * 1;
+
+            light[3].position.x = Math.sin(time * 0.6) * 0.03 * w;
+            //    light[3].position.y = Math.cos(time * 0.7) * 0.03 * h;
+            light[3].position.z = z + Math.abs(Math.sin(time * 0.5) * 1);
+
+            light[4].position.x = - Math.sin(time * 0.7) * 0.045 * w;
+            light[4].position.y = - Math.cos(time * 0.3) * 0.05 * h;
+            light[4].position.z = z + Math.abs(Math.sin(time * 0.5)) * 1;
+
+
+            renderer.render(scene, camera);
+        }  // einde render 
+
+        function startOrbitController() {
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.addEventListener('change', render);
+            controls.listenToKeyEvents(window);    // pijltjes toetsen.
+            //     controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+            //     controls.dampingFactor = 0.05;
+
+            controls.minPolarAngle = + Math.PI * 0.5;     // tilt. , x as.            
+            controls.maxPolarAngle = + Math.PI * 0.5;
+
+            controls.minAzimuthAngle = - Math.PI * 0.5;      // rot y as.
+            controls.maxAzimuthAngle = + Math.PI * 0.5;
+
+            //    controls.enableRotate = false;
+
+            // controls.target.set(0, 10, 0);
+            controls.minDistance = 20.0;
+            controls.maxDistance = 400.0;
+
+            //    controls.autoRotate = true;
+            //    controls.autoRotateSpeed = 4;   // 2 is default. 
+
+            controls.update();
+        }   // einde startOrbitControls.
+        //model
+        function laadModel() {
+            // let x = location.hostname;
+            if (location.hostname == "localhost")
+                pad = "./modellen/glb/"
+            else
+                pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+
+            let model = pad + kopnaam + '.glb';
+            // console.log("model: " + model) ;
+            const loader = new GLTFLoader();
+
+            loader.load(model, function (gltf) {
+                kop = gltf.scene.children[0];
+                kop.scale.x = kop.scale.y = kop.scale.z = 1;
+                kop.traverse(function (child) {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                    }
+                });
+
+                scene.add(kop);
+            },
+            );    // einde loader
+        }   // einde laadModel 
+
+        function maakMenu() {
+
+            let menu = document.getElementById("menu");
+            if (touchDevice)
+                menu.innerHTML = leesMenuTekst() + "Shadows. Touch to rotate and tilt. ";
+            else
+                menu.innerHTML = leesMenuTekst() + "Shadows. Mousewheel to zoom. Mouse followed by green light. Click 2 freeze light. ";
+
+            kleurActiveLink();
+        }
+
+        function maakRenderer() {
+            //renderer
+            /* Point lights rendering shadows 6 times.
+                Spot lights and directional lights rendering shadows 1 time. 
+            */
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.BasicShadowMap;
+        //     renderer.shadowMap.type = THREE.PCFSoftShadowMap   // zwaar. 
+            renderer.shadowMap.type = THREE.VSMShadowMap
+            document.body.appendChild(renderer.domElement);
+            onWindowResize();
+        }
+
+        function maakWand() {
+            let w = 1 * 256;
+            const planeGeometry = new THREE.PlaneGeometry(w, w, 32, 32);
+            let planeMaterial = new THREE.MeshPhongMaterial({ color: 0xf00000, shininess: 200, reflectivity: 1.0 });
+            //    planeMaterial.BackSide = true ;     //  FrontSide | BackSide | DoubleSide
+            const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+            plane.receiveShadow = true;
+            //  plane.position.x = w * 0.5 ; 
+            plane.position.y = - 0;  // -500 
+            plane.position.z = - 80;  // -20
+            plane.rotation.x = Math.PI * 0.2;
+            scene.add(plane);
+        }
+
+
+        function maakScene() {
+            //    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+            //    camera.position.z = focus;
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 6, 150);  // z = 50 
+
+
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x003300);
+        }  // einde maakScene
+
+        function maakBelichting() {
+            const alight = new THREE.AmbientLight(0xf0f0f0, 0.5); // soft white light, intensity
+            //    scene.add(alight);
+
+            let intensiteit = 2.0;
+            const shadowIntensity = 10; // between 0 and 1, niet meer waar. 
+
+            let directionalLight1 = new THREE.DirectionalLight(0xffffff, intensiteit);
+            directionalLight1.castShadow = true;
+            // directionalLight1.shadow.bias = 0.0;
+            //     directionalLight1.intensity = shadowIntensity;
+
+            let directionalLight2 = new THREE.DirectionalLight(0xff0000, intensiteit / 2);
+            //  directionalLight2.castShadow = false;
+
+            directionalLight1.position.set(-50, 1.5, +50);
+            directionalLight2.position.set(-50, 0, -50);
+
+            // Set up shadow properties for the light
+            const w = 10 * breedte;
+            //    directionalLight1.shadow.mapSize.width =  w;
+            //    directionalLight1.shadow.mapSize.height = w;
+
+            /*
+            const lightCameraConstant = 32;  // 64, hoe kleiner hoe mooier rond. 
+            directionalLight1.shadow.camera.left = -lightCameraConstant;
+            directionalLight1.shadow.camera.right = lightCameraConstant;
+            directionalLight1.shadow.camera.top = lightCameraConstant;
+            directionalLight1.shadow.camera.bottom = -lightCameraConstant;  */
+
+            directionalLight1.shadow.camera.near = 2.5;
+            directionalLight1.shadow.camera.far = breedte; // 512;
+
+            scene.add(directionalLight1);
+        //    scene.add(directionalLight2);
+
+            const helper = new THREE.DirectionalLightHelper(directionalLight1);
+            scene.add(helper);
+
+            const shadowHelper = new THREE.CameraHelper(directionalLight1.shadow.camera);
+            scene.add(shadowHelper);
+        }
+        function maakKubus() {
+
+            const texture = new THREE.TextureLoader().load('./images/kop.jpg');
+            let geometry = new THREE.BoxGeometry(breedte, breedte, breedte);
+            //    let material = new THREE.MeshPhongMaterial({ map: texture });
+            let material = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 200, reflectivity: 1.0 });
+            material.side = THREE.DoubleSide;
+            //    material.side = THREE.BackSide; // BackSide, FrontSide, DoubleSide. 
+            //    material.color.set(0x33ff33);
+            // material.shininess = 150;
+            material.specular.set(0x005500);
+            let kubus = new THREE.Mesh(geometry, material);
+            //    kubus.position.z = -500 ;
+            kubus.receiveShadow = true;
+            //    kubus.castShadow = false;
+            scene.add(kubus);
+        }
+        function controlDrag() {
+            rayCaster = new THREE.Raycaster();
+            control = new TransformControls(camera, renderer.domElement);
+            control.addEventListener('dragging-changed', function (event) {
+
+                if (!event.value) {
+                    // alert(); 
+                    /*
+                    const points = curve.getPoints(50);
+                    line.geometry.setFromPoints(points);
+                    flow.updateCurve(0, curve);  */
+                }
+            });
+        }   // einde controlDrag.       
+    </script>
+</body>
+
+</html>

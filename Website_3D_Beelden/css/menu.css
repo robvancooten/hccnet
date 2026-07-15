@@ -1,0 +1,70 @@
+/* hor menu:   */
+ul {
+  width: 100%;
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	background-color:#bbb;
+  font-size: 2vw;
+  }
+  
+  li {
+	float: left;
+  }
+  
+  li a {
+	display: block;
+	color:#000;
+	background-color: #ddd;
+	text-align: center;
+	padding: 0px 1vw;
+	text-decoration: none;
+  }
+/* 
+  li a:visited {
+	background-color: #d00;
+  }    
+  werkt niet    
+*/ 
+  li a:hover {
+	background-color: #0f0;
+  }  
+
+  li a:active {
+	background-color: #f00;
+  }   
+   /* je ziet active maar even.  */
+
+   /* even oefenen:
+   marquee tag: 
+ */ 
+
+  img{
+    width: 100%;
+    height: 1%;
+  }
+
+  .marquee {
+  width: 10vw;
+  height: 5vw;
+  background-color:  transparent;
+  position:absolute;
+  top: 5%;
+  left: 10%;
+  z-index: +30;		
+  animation-name: marquee;
+  animation-duration: 5s;
+  animation-iteration-count: infinite; 
+  animation-direction: alternate-reverse;   
+  animation-timing-function: linear;
+/*   animation: marq 5s linear infinite;  */
+  }
+  
+  @keyframes marquee{
+  0%   { left: 5%; }
+/*	25%  { left: 40%; }   */
+/*   50%  { left: 50%; } */
+/*	75%  { left: 60%; } */
+  100% { left: 80%; }
+  } 

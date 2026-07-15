@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+		<meta name="author" content=" Rob van Cooten. Waalre. ">
+		<meta name="keywords" content="3D modellen, Threejs, Keramiek">
+		<meta name="description"
+			content="Toon op allerlei manieren keramieke beelden. De beelden zijn van alle kanten te bekijken.">
+		<meta name="description" content="Keramieke beelden gemaakt door Marjan van Cooten.">
+
+		<style>
+			html,
+			body {
+				height: 100%;
+				margin: 0;
+			}
+		</style>
+	</head>
+
+	<body>
+		<!-- Import maps polyfill -->
+		<script src="js/Detector.js"></script>
+		<script async src="./build/es-module-shims.js"></script>
+
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+					
+				}
+			}
+		</script>
+
+		<script type="module">
+			import * as THREE from 'three';
+			import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+			import { OrbitControls } from './jsm/controls/OrbitControls.js';
+
+			let container;
+			let camera, scene, renderer;
+
+			let windowHalfX = window.innerWidth / 2;
+			let windowHalfY = window.innerHeight / 2;
+
+			let drone;
+			let wing1;
+			const wings = [];
+			let controls;
+
+
+			// Initiate function or other initializations here
+			init();
+
+			function init() {
+				container = document.createElement('div');
+				document.body.appendChild(container);
+
+				camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+				camera.position.z = 50;
+
+				// scene
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color(0x447744);
+
+				// White directional light shining from the top.
+				const directionalLight1 = new THREE.DirectionalLight(0xaaffaa, 2.1);
+				directionalLight1.position.set(100, 100, 100)
+				scene.add(directionalLight1);
+
+				for (let k = 0; k < 4; k++)
+					wings[k] = null;
+
+				laadModel();
+
+				//  renderer = new THREE.WebGLRenderer();
+				renderer = new THREE.WebGLRenderer({ alpha: true }); // init like this
+				renderer.setClearColor(0xffffff, 1.0); // second param is opacity, 0 => transparent     
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.setSize(window.innerWidth, window.innerHeight);
+
+				startOrbitControls();
+				container.appendChild(renderer.domElement);
+
+				window.addEventListener('resize', onWindowResize);
+
+				animate();
+
+			}   // einde init
+
+			function onWindowResize() {
+
+				windowHalfX = window.innerWidth / 2;
+				windowHalfY = window.innerHeight / 2;
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize(window.innerWidth, window.innerHeight);
+
+			}
+			//
+
+			function animate() {
+				requestAnimationFrame(animate);
+				render();
+			}
+
+			let r = +1;
+			function render() {
+				camera.lookAt(scene.position);
+
+				if (drone != null) {
+
+					if (wings[3] != null) {
+						for (let k = 0; k < 4; k++)
+							wings[k].rotation.z += 0.5;
+					}
+
+					if (drone.rotation.z > 0.5)
+						r = -1;
+					if (drone.rotation.z < -0.5)
+						r = +1;
+
+					drone.rotation.z += 0.005 * r;
+				}
+
+				renderer.render(scene, camera);
+			}
+
+
+			function laadModel() {
+                let pad = maakPad();  
+				let model = pad + 'drone_low.glb';
+
+				//  console.log("model: " + model)
+				const loader = new GLTFLoader();
+
+				loader.load(model, function (gltf) {
+					drone = gltf.scene.children[0];
+
+					drone.scale.multiplyScalar(0.2);  // 50 
+					scene.add(drone);
+					maakWings(); 
+					// alert(wings[0]);
+				},
+					// called while loading is progressing
+					function onProgress(xhr) {
+						// console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+					},
+					// called when loading has errors
+					function onError(error) {
+						// alert("Load Error" + error) ;
+						console.log('O, 0 An error happened during loading' + error);
+
+					},
+					// onLoad — A function to be called after the loading is successfully completed.					
+					function onLoad() {
+						; //  alert("loaded") ;  // werkt niet. 
+					}
+				);    // einde loader
+			}   // einde laadModel
+
+function maakWings(){
+				//	console.log(dumpObject(drone).join('\n'));
+					// wing1 = drone.getObjectByName('Wing1');			   
+					for (let k = 0; k < 4; k++) {
+						let w = "Wing" + (k + 1);
+						// alert(w); 
+						wings[k] = drone.getObjectByName(w);
+						// alert(wings[k]);
+					}
+				}
+
+			function maakPad(){	
+				let pad;
+				if ( location.hostname == "localhost" )
+					pad = "./modellen/glb/drones/"
+				else
+					pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+				return pad ; 
+			}	
+			function startOrbitControls() {
+				controls = new OrbitControls(camera, renderer.domElement);
+				controls.addEventListener('change', render);
+
+				controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+				controls.dampingFactor = 0.5;
+
+				controls.minPolarAngle = Math.PI * 0.35;     // tilt. , x as.            
+				controls.maxPolarAngle = Math.PI * 0.6;
+
+				controls.minAzimuthAngle = -Math.PI * 0.25;      // rot y as.
+				//   controls.maxAzimuthAngle = Math.PI * 0.4;
+
+				controls.minDistance = 50;    // 500 
+				controls.maxDistance = 5500;     // 1500 tevens startpositie camera
+
+				controls.autoRotate = true;
+				controls.autoRotateSpeed = 8;   // 2.4;   // 2 is default. 
+				controls.update();
+			}
+			function dumpObject(obj, lines = [], isLast = true, prefix = '') {
+				const localPrefix = isLast ? '└─' : '├─';
+				lines.push(`${prefix}${prefix ? localPrefix : ''}${obj.name || '*no-name*'} [${obj.type}]`);
+				const newPrefix = prefix + (isLast ? '  ' : '│ ');
+				const lastNdx = obj.children.length - 1;
+				obj.children.forEach((child, ndx) => {
+					const isLast = ndx === lastNdx;
+					dumpObject(child, lines, isLast, newPrefix);
+				});
+				return lines;
+			}
+
+		</script>
+
+	</body>
+
+</html>

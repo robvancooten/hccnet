@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <title> Animated Masking. </title>
+    <meta charset="utf-8">
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="css/masking.css">
+    <link type="text/css" rel="stylesheet" href="css/menu.css">
+
+    <script>
+      // functies voor drag en drop: 
+      let ifr;
+      let dd;
+
+      function allowDrop(ev) {
+        ev.preventDefault();  // anders werkt het niet. 
+        // console.log("ev.target" + ev.target);
+        try {
+          ev.target.style.backgroundColor = "silver";
+        }
+        catch (err) {
+
+          console.log("O o Style Error: " + err.message);
+          document.getElementById('anibox').style.backgroundColor = 'darkgreen';
+        }
+      }
+
+      function drag(ev) {
+        ev.dataTransfer.setData("text", ev.target.id);
+        //    alert("drag: " + ev.target.id) ;
+        dd = ev.target.id;
+        //   console.log("drag element: " + dd);
+        dd = dd.charAt(dd.length - 1);
+        //   alert("lastElemant: " + dd); 
+
+        ifr = document.getElementById(dd);
+        //  console.log("drag element: " + ifr);
+
+      }
+
+      function drop(ev) {
+        ev.preventDefault();  // anders opent Safari een nieuwe tab. W3 doet het ook zo. 
+        var data = ev.dataTransfer.getData("text");
+        window.move = true;
+        try {
+          //  Block of code to try
+          ev.target.appendChild(document.getElementById(data));
+        }
+        catch (err) {
+          console.log("O o, Error: " + err.message);
+          document.getElementById('anibox').style.backgroundColor = 'red';
+        }
+
+        //  console.log("drop element: " + ev.target) ; 
+        dd = 'fr' + dd;
+        //  alert(dd); 
+        // console.log("element dd: " + dd);
+        try {
+          document.getElementById(dd).style.display = "block";  //  display: "none" ;   
+        }
+        catch (err) {
+          console.log("O,o style error");
+        }
+
+        let plaatjes = document.querySelectorAll('#anibox img');
+        window.aantalPlaatjes = plaatjes.length;
+        // alert("aantal plaatjes: " + window.aantalPlaatjes);
+        if (plaatjes.length > 0)   // > 0
+        {
+        //  menu.innerHTML = "Still " + window.aantalPlaatjes + " to get.";
+          document.getElementById('messveld').innerHTML = "Still " + window.aantalPlaatjes + " to get.";
+          document.getElementById('reset').innerHTML = "Stop.";
+        }
+        else {
+        //   menu.innerHTML = + "Finished!" ; 
+          document.getElementById('messveld').innerHTML = "Finished!";
+          document.getElementById('reset').innerHTML = "Restart.";
+        }
+      }  // einde drop. 
+    </script>
+  </head>
+
+  <body>
+
+    <!-- <body ondrop="drop(event)" ondragover="allowDrop(event)">   -->
+
+    <div id="menu">
+      hier komt het menu.
+    </div>
+    <button type="button" id="reset"> Stop / <b>G</b>o </button>
+
+    <!-- eventueel: class="unselectable"   -->
+    <div id="anibox" draggable="true" ondrop="drop(event)" ondragover="allowDrop(event)">
+      <img src="./images/koppen/kop1.jpg" draggable="true" ondragstart="drag(event)" id="drag1" title="bladerkop"
+        alt="bladerkop">
+      <img src="./images/koppen/kop2.jpg" draggable="true" ondragstart="drag(event)" id="drag2" title="smiley"
+        alt="smiley">
+      <img src="./images/koppen/kop3.jpg" draggable="true" ondragstart="drag(event)" id="drag3" title="puntmuts blad"
+        alt="puntmuts blad">
+      <img src="./images/koppen/kop4.jpg" draggable="true" ondragstart="drag(event)" id="drag4" title="vals loeder"
+        alt="vals loeder">
+    </div>
+
+
+    <div id="myframe">
+      <iframe id="fr1" src="./kopje1.html?nummer=1" title="Head1" scrolling="no"></iframe>
+      <iframe id="fr2" src="./kopje1.html?nummer=2" title="Head2" scrolling="no"></iframe>
+      <iframe id="fr3" src="./kopje1.html?nummer=3" title="Head3" scrolling="no"></iframe>
+      <iframe id="fr4" src="./kopje1.html?nummer=4" title="Head4" scrolling="no"></iframe>
+      <h1 id="messveld">Drag Down to Drop Area:</h1>
+    </div>
+
+    <div id="dropArea">
+      <div id="div1" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+      <div id="div2" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+      <div id="div3" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+      <div id="div4" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    </div>
+
+    <script type="module">
+      import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+   
+      maakMenu(); 
+
+      // init variabelen: 
+      let posX = 320;
+      let posY = 100;
+      const snelheidX = 8;
+      const snelheidY = 5;
+      let rX = 1;
+      let rY = 1;
+      let d = 75;
+      var aantalPlaatjes;
+      window.aantalPlaatjes = 4;
+      var move;
+      window.move = true;
+
+      init(); 
+
+      function init(){
+      var myTimer;
+      window.myTimer = setInterval(draw, 50);
+
+      const reset = document.getElementById("reset");
+      reset.addEventListener("pointerdown", pressingDownReset, false);
+      }
+
+      function pressingDownReset() {
+        window.move = !window.move;
+        if (!window.move)
+          document.getElementById('reset').innerHTML = "Go.";
+        else
+          document.getElementById('reset').innerHTML = "Stop.";
+        if (window.aantalPlaatjes == 0)
+          location.reload(true);
+        //   alert("window.move: " + window.move)
+      }
+
+
+      function myStopFunction() {
+        clearInterval(window.myTimer);
+      }
+
+      function draw() {
+        const anibox = document.getElementById("anibox");
+        // document.getElementById('anibox').style.backgroundColor = 'red'; 
+        let w = anibox.clientWidth;   //  + "px";
+        w = w * window.aantalPlaatjes / 4;
+        let h = anibox.clientHeight;   //  + "px";    
+        //   console.log("pos anibox: " + anibox.posX);
+
+        d = Math.min(w, h) / 10;   // diameter / 2 ; 
+
+        // control and set x- and y-position
+        if (posX < d)
+          rX = +1;
+        if (posX > (w - d))
+          rX = -1;
+
+        if (posY < d)
+          rY = +1;
+        if (posY > (h - d))
+          rY = -1;
+
+        if (window.move && (h > 3 * d))
+          posY += rY * snelheidY;
+
+        if (window.move)
+          posX += rX * snelheidX;
+        else
+          d = 4 * d;
+
+        let path = 'circle(' + d + 'px at ' + posX + 'px ' + posY + 'px)';
+        // change css mask-position                
+        document.getElementById("anibox").style.clipPath = path;  //  "circle(50%)";
+        //  $('.mask').css('clip-path', path);
+        //   $('.mask').css('background-color', 'red');       dan werkt selector niet meer....   
+
+      }  // end draw 
+
+      
+      function maakMenu(){
+      let menu = document.getElementById("menu");
+      if (isTouchDevice())
+        menu.innerHTML = leesMenuTekst() + "First touch button to stop. Then select image slowly.Then drag 1 of the 4 heads.";
+      else
+        menu.innerHTML = leesMenuTekst() + "First click button to stop. Then try to drag 1 of the 4 heads.";
+
+      // alert(leesMenuTekst() ); 
+
+      kleurActiveLink();
+      }
+    </script>
+  </body>
+
+</html>

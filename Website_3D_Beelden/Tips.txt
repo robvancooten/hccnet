@@ -1,0 +1,40 @@
+Open chrome developer tool ensure that your cursor is on the developer tool page. do ctrl+Shift+M
+Verwijder Adobe extension uit Browser. Anders error open before closing. 
+
+	//  "https://cdn.jsdelivr.net/npm/three@0.183.1/build/three.module.min.js"
+	// 'https://cdn.jsdelivr.net/npm/three@0.183.1/examples/jsm/loaders/GLTFLoader.js' 	
+
+    "three/webgpu":  "https://cdn.jsdelivr.net/npm/three@0.183.1/build/three.webgpu.js" , 
+    "three/tsl":"https://cdn.jsdelivr.net/npm/three@0.183.1/build/three.tsl.js"         
+
+import { color, fog, float, positionWorld, triNoise3D, positionView, normalWorld, uniform } from 'three/tsl';
+
+
+let container;  
+maakScene()
+            container = document.createElement('div');
+            document.body.appendChild(container);
+            maakRenderer() 
+            container.appendChild(renderer.domElement);
+
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener("pointerdown", pressingDown, false);
+        function pressingDown(e) {
+            controls.autoRotateSpeed = -controls.autoRotateSpeed;
+        }            
+
+        animate(){ 
+          lightholder.quaternion.copy(camera.quaternion);
+        }
+
+                    if (showCPU) {
+                document.body.appendChild(stats.dom);
+                //  alert(stats.dom); 
+                stats.dom.style.position = 'absolute';
+                stats.dom.style.top = '100px';
+                stats.dom.style.left = '10px';
+            }
+
+
+
+                       

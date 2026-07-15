@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>Head</title>
+	<meta charset="utf-8">
+</head>
+
+<body>
+	<!-- Import maps polyfill -->
+	<script type="importmap">
+			{
+				"imports": {
+					"three": "./Website_3D_Beelden/build/three.module.js"					
+				}
+			}
+		</script>
+
+	<script type="module">
+		import * as THREE from 'three';
+		import { GLTFLoader } from './Website_3D_Beelden/jsm/loaders/GLTFLoader.js';
+
+		let container;
+		let camera, scene, renderer;
+		let kop;
+		let r = +1; // richting roteren. 
+
+		init();
+
+		function init() {
+			container = document.createElement('div');
+			document.body.appendChild(container);
+
+			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+			camera.position.z = 50;
+
+			// scene
+			scene = new THREE.Scene();
+			// scene.background = new THREE.Color( 0xaaaaaa );   			
+
+			const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
+			directionalLight.position.set(-100, 100, 100)
+			scene.add(directionalLight);
+
+			scene.add(camera);
+
+			//model
+			laadModel();
+			myRenderer();
+			window.addEventListener('resize', onWindowResize);
+			animate();
+
+		}   // einde init
+
+		function myRenderer() {
+		//	renderer = new THREE.WebGLRenderer({ antialias: true });
+			renderer = new THREE.WebGLRenderer({ alpha: true }); // transparant.  
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			renderer.setPixelRatio( window.devicePixelRatio );			
+			document.body.appendChild(renderer.domElement);
+            //  container.appendChild(renderer.domElement);      			
+		}
+
+		function onWindowResize() {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+		}
+
+		function animate() {
+			requestAnimationFrame(animate);
+			render();
+		}
+
+		function render() {
+		//	camera.lookAt(scene.position);
+
+			if (kop != null) {
+				if (kop.rotation.z > 0.5)
+					r = -1;
+				if (kop.rotation.z < -0.5)
+					r = +1;
+
+				kop.rotation.z += 0.005 * r;
+			}
+			renderer.render(scene, camera);
+		}
+		function laadModel() {
+			let pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+			let model = pad + 'bladerKop.glb';
+			//  console.log("model: " + model)
+			const loader = new GLTFLoader();
+
+			loader.load(model, function (gltf) {
+				kop = gltf.scene.children[0];
+
+				kop.scale.multiplyScalar(1);  // 50 
+				//	kop.metalness = 10; // dir light werkt anders niet...?
+				// kop.texture.encoding = THREE.sRGBEncoding ; 
+
+				scene.add(kop);
+			},
+				// called while loading is progressing
+				function (xhr) {
+					;
+					// 	console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+				},
+				// called when loading has errors
+				function (error) {
+					console.log('O, 0 An error happened during loading');
+				}
+			);    // einde loader
+		}   // einde laadModel
+	</script>
+</body>
+
+</html>

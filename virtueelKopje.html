@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Head build from Vertices.</title>
+    <meta charset="utf-8">
+</head>
+
+<body>
+    <!-- // "three": "https://cdn.jsdelivr.net/npm/three@0.183.1/build/three.module.min.js"	 -->
+    <script type="importmap">
+			{
+				"imports": {
+                    "three": "./Website_3D_Beelden/build/three.module.js"									
+				}
+			}
+		</script>
+
+    <script type="module">
+        import * as THREE from 'three';
+		import { GLTFLoader } from './Website_3D_Beelden/jsm/loaders/GLTFLoader.js';
+
+        let container;
+        let camera, scene, renderer;
+        let kop, group;
+        let r = +1; // richting roteren. 
+
+        let pad;
+        if (location.hostname == "localhost")
+            pad = "./Website_3D_Beelden/modellen/glb/"
+        else
+            pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+        init();
+
+        function init() {
+            container = document.createElement('div');
+            document.body.appendChild(container);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+            camera.position.z = 50;
+
+            // scene
+            scene = new THREE.Scene();
+            // scene.background = new THREE.Color( 0xaaaaaa );   			
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
+            directionalLight.position.set(-100, 100, 100)
+            scene.add(directionalLight);
+
+            scene.add(camera);
+
+            //model
+            laadModel();
+            myRenderer();
+            window.addEventListener('resize', onWindowResize);
+            animate();
+
+        }   // einde init
+
+        function myRenderer() {
+			renderer = new THREE.WebGLRenderer({ alpha: true }); // transparant.  
+			renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);      
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            render();
+        }
+
+        function render() {
+            camera.lookAt(scene.position);
+
+            if (group != null) {
+                if (group.rotation.y > 0.5)
+                    r = -1;
+                if (group.rotation.y < -0.5)
+                    r = +1;
+
+                group.rotation.y += 0.005 * r;
+            }
+            renderer.render(scene, camera);
+        }
+        async function laadModel() {
+            let model = pad + 'meermin.glb';
+            //  console.log("model: " + model)
+            const loader = new GLTFLoader();
+
+            let gltf = await loader.loadAsync(model);
+            let m = gltf.scene;
+            maakVertices(m);
+        }
+
+        function maakVertices(kop) {
+            let clones = [];
+
+            let boxje;    // vorm 
+            boxje = maakBoxje();
+            boxje.material.color = new THREE.Color(0xff0000);
+
+            group = new THREE.Group();
+            group.scale.multiplyScalar(0.7);  // vergroting 
+            scene.add(group);
+
+            let meshes = [];
+            kop.traverse(e => e.isMesh && meshes.push(e));
+
+            meshes.forEach(mesh => {
+                let g = mesh.geometry;
+                let points = g.attributes.position;
+                let colorAttr = mesh.geometry.getAttribute("color");
+                //	alert("Aantal attri: " + colorAttr) ; 
+
+                for (let i = 0; i < points.count; i++) {
+                    let x = points.getX(i);
+                    let y = points.getY(i);
+                    let z = points.getZ(i);
+                    // 	const r = points.colorAttr.getX( i ); 
+
+                    if (i % 10 == 0) {
+                        clones[i] = boxje.clone();
+                        clones[i].position.x = x;
+                        clones[i].position.y = y;
+                        clones[i].position.z = z;
+                        // console.log("aantal: "  + i ); 
+                        // scene.add(clones[i]); 
+                        group.add(clones[i]);
+                    }
+
+                }
+
+            })
+            function maakBoxje() {
+                let d = 0.5;
+                let teller = 0;
+                let geometryBox = new THREE.BoxGeometry(d, d, d);
+                let materialBox = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                // materialBox = new THREE.MeshLambertMaterial({ color: 0x00ff00 });                
+                return boxje = new THREE.Mesh(geometryBox, materialBox);
+            }
+        }
+    </script>
+</body>
+
+</html>

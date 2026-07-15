@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Playing with shadows.</title>
+    <meta charset="utf-8">
+    <!-- 
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        -->
+    <!-- <meta http-equiv="refresh" content="5">    -->
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D models, Threejs, Ceramics, shadows">
+    <!--  https://sourceforge.net/projects/three-js.mirror/  -->
+    <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="css/menu.css">
+    <style>
+        body {
+            /*  cursor:none;    */
+            cursor: url(./images/kop.cur), auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="menu">
+    </div>
+
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+				}
+			}
+		</script>
+
+    <script type="module">
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+        import * as THREE from 'three';
+        import { TransformControls } from './jsm/controls/TransformControls.js';
+
+        import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+        import { FontLoader } from './jsm/loaders/FontLoader.js';
+        import { TextGeometry } from './jsm/geometries/TextGeometry.js';
+        import Stats from './jsm/libs/stats.module.js';
+
+        let camera, scene, renderer;
+        let controls;   // touch orbit mouse controls      
+        const stats = new Stats();
+
+        let z = 70;
+        let rayCaster;
+        let controlHelper;
+        let isTouching = false,
+            touchDevice = false;
+
+        let move = true;
+        const mouse = new THREE.Vector2();
+
+
+        let light = [], lightHolder;
+        let bollen = [];
+        let pad = 'modellen/glb/';
+        const kopnaam = 'bladerKop';
+        let teller = 0;
+
+        let kop;
+        let koparray = [];
+        let breedte = 2 * 256; // 512;
+        let r = +1;
+
+        const clock = new THREE.Clock();
+        let showCPU = false;
+
+        init();
+        animate();
+
+        function init() {
+            touchDevice = is_touch_enabled();
+            maakMenu();
+            maakScene();
+            maakBelichting();
+
+            maakPointLights();
+            maakKubus();
+            maakTekst();
+
+            // maakWand();
+            laadModel();
+            maakRenderer();
+            controlDrag();
+
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+            startOrbitController();
+            controls.update();
+
+        }    // einde init
+        /*************************************************************************/
+        function onWindowResize() {
+
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+        }
+        // let op: touchmove werkt soms, afhankelijk browser en device!
+        function is_touch_enabled() {
+            return ('ontouchstart' in window) ||
+                (navigator.maxTouchPoints > 0) ||
+                (navigator.msMaxTouchPoints > 0);
+        }
+
+        function maakPointLights() {
+            let intensity = 15;
+            let distance = breedte / 2;
+            let decay = 2;
+
+            // SphereGeometry(radius : Float, widthSegments : Integer, heightSegments :
+            let diameter = 1 * 1.6;   // 2
+            const sphere = new THREE.SphereGeometry(diameter, 32, 16);  // voor lights.  
+
+            let kl = 0x0000ff;
+            let kleuren = [];
+            kleuren[0] = 0xff0000;
+            kleuren[1] = 0x00ff00;
+            kleuren[2] = 0x0000ff;
+            kleuren[3] = 0xff00ff;
+            kleuren[4] = 0xffffff;
+
+            for (let k = 0; k < 5; k++) {
+                let mat = new THREE.MeshPhongMaterial({ color: kleuren[k], shininess: 500, reflectivity: 1.0 });
+                mat = new THREE.MeshStandardMaterial({ color: kleuren[k] });
+                bollen[k] = new THREE.Mesh(sphere, mat);
+                bollen[k].castShadow = true;
+                scene.add(bollen[k]);
+
+                /*
+                // SpotLight( color : Integer, intensity : Float, distance : Float, angle : Radians, penumbra : Float, decay : Float )
+                light[k] = new THREE.SpotLight(kleuren[k], 150, distance, Math.PI * 0.02);
+                light[k].decay = 0;
+                light[k].add(bollen[k]);
+               // bollen[k].position.z += 1;
+                light[k].castShadow = true;
+                scene.add(light[k]);     */
+            }
+        }
+
+        function onPointerDown(event) {
+            // alert(); 
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = - (event.clientY / window.innerHeight) * 2 + 1.1;   // +1    
+            rayCaster.setFromCamera(mouse, camera);
+
+            let intersects = rayCaster.intersectObjects(koparray, false);   // false
+            if (intersects.length) {
+                // console.log(">> Raak");
+                const target = intersects[0].object;
+                controlHelper.attach(target);
+                scene.add(controlHelper.getHelper());
+                move = false;
+            }
+            else {
+                scene.remove(controlHelper.getHelper());
+                move = !move;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            lightHolder.quaternion.copy(camera.quaternion);
+            if (kop != null) {
+                ;  //     kop.quaternion.copy(camera.quaternion);
+            }
+
+            controls.update();
+            render();
+        }
+
+        function render() {
+            stats.update();
+            teller = teller + 0.005;  //  = Date.now() * 0.0005;
+            if (teller > 1000)
+                teller = 0;
+            camera.lookAt(scene.position);
+            roteerKop();
+            // beweegLights();
+            beweegBollen();
+
+            //    controls.autoRotate = move;
+            if (move)
+                controls.autoRotateSpeed = 4
+            else
+                controls.autoRotateSpeed = 0;
+
+            renderer.render(scene, camera);
+        }  // einde render 
+
+        function roteerKop() {
+            if (kop != null) {
+                kop.rotation.z = -controls.getAzimuthalAngle();
+            }
+        }
+
+        function beweegBollen() {
+            let w = window.innerWidth;
+            let h = window.innerHeight;
+            //  console.log("w: " + w) ; 
+            z = 1;   // 10 
+
+            bollen[0].position.x = Math.sin(teller * 0.9) * 0.05 * w;
+            // bollen[0].position.y = Math.cos(teller * 0.5) * 0.005 * h;
+            //   bollen[0].position.z = z + Math.abs(Math.cos(teller * 0.3) * 1);
+
+            bollen[1].position.x = Math.cos(teller * 0.8) * 0.05 * w;
+            bollen[1].position.y = Math.sin(teller * 0.5) * 0.05 * h;
+            bollen[1].position.z = z + Math.abs(Math.sin(teller * 0.7)) * 2;
+
+            bollen[2].position.x = Math.sin(teller * 0.7) * 0.045 * w;
+            bollen[2].position.y = Math.cos(teller * 0.3) * 0.05 * h;
+            bollen[2].position.z = z + Math.abs(Math.sin(teller * 0.5)) * 1;
+
+            bollen[3].position.x = Math.sin(teller * 0.6) * 0.03 * w;
+            //    bollen[3].position.y = Math.cos(teller * 0.7) * 0.03 * h;
+            bollen[3].position.z = z + Math.abs(Math.sin(teller * 0.5) * 1);
+
+            bollen[4].position.x = - Math.sin(teller * 0.7) * 0.045 * w;
+            bollen[4].position.y = - Math.cos(teller * 0.3) * 0.05 * h;
+            bollen[4].position.z = z + Math.abs(Math.sin(teller * 0.5)) * 1;
+        }
+
+        function beweegLights() {
+            let w = window.innerWidth;
+            let h = window.innerHeight;
+            //  console.log("w: " + w) ; 
+            z = 1;   // 10 
+
+            light[0].position.x = Math.sin(teller * 0.9) * 0.05 * w;
+            // light[0].position.y = Math.cos(teller * 0.5) * 0.005 * h;
+            //   light[0].position.z = z + Math.abs(Math.cos(teller * 0.3) * 1);
+
+            light[1].position.x = Math.cos(teller * 0.8) * 0.05 * w;
+            light[1].position.y = Math.sin(teller * 0.5) * 0.05 * h;
+            light[1].position.z = z + Math.abs(Math.sin(teller * 0.7)) * 2;
+
+            light[2].position.x = Math.sin(teller * 0.7) * 0.045 * w;
+            light[2].position.y = Math.cos(teller * 0.3) * 0.05 * h;
+            light[2].position.z = z + Math.abs(Math.sin(teller * 0.5)) * 1;
+
+            light[3].position.x = Math.sin(teller * 0.6) * 0.03 * w;
+            //    light[3].position.y = Math.cos(teller * 0.7) * 0.03 * h;
+            light[3].position.z = z + Math.abs(Math.sin(teller * 0.5) * 1);
+
+            light[4].position.x = - Math.sin(teller * 0.7) * 0.045 * w;
+            light[4].position.y = - Math.cos(teller * 0.3) * 0.05 * h;
+            light[4].position.z = z + Math.abs(Math.sin(teller * 0.5)) * 1;
+        }
+
+        function startOrbitController() {
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.addEventListener('change', render);
+            controls.listenToKeyEvents(window);    // pijltjes toetsen.
+            //     controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+            //     controls.dampingFactor = 0.05;
+
+            controls.minPolarAngle = - Math.PI * 0.7;     // tilt. , x as.            
+            controls.maxPolarAngle = + Math.PI * 0.5;
+
+            //   controls.minAzimuthAngle = - Math.PI * 0.5;      // rot y as.
+            //   controls.maxAzimuthAngle = + Math.PI * 0.5;
+
+            controls.minDistance = 5;
+            controls.maxDistance = breedte * 2.5;  // 0.2
+
+            controls.enableRotate = true;
+
+            controls.target.set(0, 0, 18);
+
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 4;   // 2 is default. 
+
+            controls.update();
+        }   // einde startOrbitControls.
+
+        //model
+        function laadModel() {
+            // let x = location.hostname;
+            if (location.hostname == "localhost") {
+                pad = "./modellen/glb/"
+                showCPU = true;
+            }
+            else
+                pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+
+            let model = pad + kopnaam + '.glb';
+            // console.log("model: " + model) ;
+            const loader = new GLTFLoader();
+
+            loader.load(model, function (gltf) {
+                kop = gltf.scene.children[0];
+                // kop.scale.x = kop.scale.x = kop.scale.z = 1;
+                //   kop.rotation.x = 1.2 * Math.PI;  // werkt niet...
+
+                kop.traverse(function (child) {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        //  child.receiveShadow = false;                        
+                    }
+                });
+                koparray.push(kop);
+                scene.add(kop);
+            },
+                // called while loading is progressing
+                function (xhr) {
+                    ;
+                    // 	console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                // called when loading has errors
+                function (error) {
+                    console.log('O, 0 An error happened during loading');
+                    if (location.hostname == "localhost")
+                        alert('O, 0 An error happened during loading');
+                }
+            );    // einde loader
+        }   // einde laadModel  
+
+        function maakMenu() {
+
+            let menu = document.getElementById("menu");
+            if (touchDevice)
+                menu.innerHTML = leesMenuTekst() + "Shadows. Touch to rotate and tilt. Select head to move. ";
+            else
+                menu.innerHTML = leesMenuTekst() + "Shadows. CursorKeys or Mouse to rotate, Mousewheel to zoom. Select Head to move. ";
+
+            kleurActiveLink();
+        }
+
+        function maakRenderer() {
+            //renderer
+            /* Point lights rendering shadows 6 times.
+                Spot lights and directional lights rendering shadows 1 time. 
+            */
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.shadowMap.enabled = true;
+            //   renderer.shadowMap.type = THREE.BasicShadowMap;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap   // zwaar. 
+            renderer.shadowMap.type = THREE.VSMShadowMap
+
+            document.body.appendChild(renderer.domElement);
+            if (showCPU) {
+                document.body.appendChild(stats.dom);
+                //  alert(stats.dom); 
+                stats.dom.style.position = 'absolute';
+                stats.dom.style.top = '100px';
+                stats.dom.style.left = '10px';
+            }
+            onWindowResize();
+        }
+
+        function maakWand() {
+            let w = 1 * 256;
+            const planeGeometry = new THREE.PlaneGeometry(w, w, 32, 32);
+            let planeMaterial = new THREE.MeshPhongMaterial({ color: 0xf00000, shininess: 200, reflectivity: 1.0 });
+            //    planeMaterial.BackSide = true ;     //  FrontSide | BackSide | DoubleSide
+            const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+            plane.receiveShadow = true;
+            plane.rotation.x = Math.PI * 2;
+
+            //  plane.position.x = w * 0.5 ;             
+            plane.position.y = - 0;  // -500   
+            plane.position.z = - 20;
+            scene.add(plane);
+        }
+
+        function maakScene() {
+            const focus = -20;
+            //    camera.position.z = focus;
+            // fov: vertical field of view, aspect ratio, near, far. 
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2 * breedte);
+            camera.position.set(0, 6, focus);
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x003300);
+
+        }  // einde maakScene
+
+        function maakBelichting() {
+            const alight = new THREE.AmbientLight(0x30f030, 0.5); // soft white light, intensity
+            scene.add(alight);
+
+            const intensiteitShadow = 1.0;
+            const intensiteit2 = 2.0;
+            const intensiteit3 = 2.0;
+            let posX = 20;
+            let posZ = 50;
+
+            let directionalLightS = new THREE.DirectionalLight(0xffff33, intensiteitShadow);
+            directionalLightS.position.set(+posX, 0, +posZ);
+
+            maakSchaduw(directionalLightS);
+
+            let directionalLight2 = new THREE.DirectionalLight(0x33ff33, intensiteit2);
+            directionalLight2.position.copy(directionalLightS.position);
+
+
+            let directionalLight3 = new THREE.DirectionalLight(0x33ff33, intensiteit3);
+            directionalLight3.position.set(-posX, 0.0, +posZ);
+            //  directionalLight3.position.copy(directionalLight1.position)
+            maakSchaduw(directionalLight3);
+
+            const helperS = new THREE.DirectionalLightHelper(directionalLightS);
+            //  scene.add(helperS);
+            const helper2 = new THREE.DirectionalLightHelper(directionalLight2);
+            // scene.add(helper2);
+            const helper3 = new THREE.DirectionalLightHelper(directionalLight3);
+            // scene.add(helper3);            
+
+            const shadowHelper = new THREE.CameraHelper(directionalLightS.shadow.camera);
+            //   scene.add(shadowHelper);
+
+            lightHolder = new THREE.Group();
+            lightHolder.add(directionalLightS);
+            lightHolder.add(directionalLight2);
+            lightHolder.add(directionalLight3);
+
+            scene.add(lightHolder);
+            //  lightHolder.quaternion.copy(camera.quaternion); // in the animation loop
+        }
+
+        function maakKubus() {
+            let materialArray = [];
+
+            materialArray.push(new THREE.MeshPhongMaterial({ color: 0x00ff33 }));  // front
+            materialArray.push(new THREE.MeshPhongMaterial({ color: 0x33ff00 }));  // back 
+            materialArray.push(new THREE.MeshPhongMaterial({ color: 0xffaa00 }));  //  top
+            materialArray.push(new THREE.MeshPhongMaterial({ color: 0x33aaff }));  //  bottom
+            materialArray.push(new THREE.MeshPhongMaterial({ color: 0x33aa00 }));  // right             
+            materialArray.push(new THREE.MeshPhongMaterial({ color: 0x33aa33 }));  // left
+
+            for (let i = 0; i < 6; i++) {
+                materialArray[i].side = THREE.DoubleSide;      // THREE.BackSide;
+                materialArray[i].transparent = true;
+                materialArray[i].opacity = 0.5;        //  0  transparent 
+                materialArray[i].shininess = 200;
+                materialArray[i].reflectivity = 1.0;
+            }
+            let geometry = new THREE.BoxGeometry(breedte, breedte, breedte);
+            let kubus = new THREE.Mesh(geometry, materialArray);
+            kubus.receiveShadow = true;
+            //  kubus.castShadow = false;
+            scene.add(kubus);
+
+        }
+        function maakKubus1() {
+            //     const texture = new THREE.TextureLoader().load('./images/white.jpg');
+            //    let material = new THREE.MeshPhongMaterial({ map: texture });            
+            let material = new THREE.MeshPhongMaterial({ color: 0x33aa00, shininess: 200, reflectivity: 1.0 });
+            material.side = THREE.DoubleSide;
+            //    material.side = THREE.BackSide; // BackSide, FrontSide, DoubleSide. 
+            //    material.color.set(0x33ff33);
+            // material.shininess = 150;
+            material.specular.set(0xff5555);
+
+            let geometry = new THREE.BoxGeometry(breedte, breedte, breedte);
+            let kubus = new THREE.Mesh(geometry, material);
+            //   kubus.position.z = -breedte/2 ;
+            kubus.receiveShadow = true;
+            //  kubus.castShadow = false;
+            scene.add(kubus);
+        }
+
+        function controlDrag() {
+            rayCaster = new THREE.Raycaster();
+            controlHelper = new TransformControls(camera, renderer.domElement);
+        }   // einde controlDrag.  
+
+        function maakSchaduw(light) {
+            const shadowIntensity = 5.0; // between 0 and 1, niet meer waar.             
+            light.castShadow = true;
+            light.shadow.normalBias = 0.003;  //  -0.004;   // verkomt acne. 
+            light.shadow.intensity = shadowIntensity;
+
+            const lightCameraConstant = breedte * 0.2;  // 64, hoe kleiner hoe mooier rond. 
+            light.shadow.camera.left = -lightCameraConstant;
+            light.shadow.camera.right = lightCameraConstant;
+            light.shadow.camera.top = lightCameraConstant;
+            light.shadow.camera.bottom = -lightCameraConstant;
+
+            light.shadow.camera.near = 25;
+            light.shadow.camera.far = breedte; // 512;
+            //  light.shadow.mapSize.set(breedte*0.5, breedte*0.5); 
+        }
+
+        function maakTekst() {
+            const loader = new FontLoader();
+            let font = undefined,
+                fontName = 'optimer', // helvetiker, optimer, gentilis, droid sans, droid serif
+                fontWeight = 'bold'; // normal bold
+
+            loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
+
+                const textGeo = new TextGeometry('Shadows on  inner cube.', {
+                    font: font,
+                    size: 8,
+                    height: 5,
+                    curveSegments: 12,
+                    bevelEnabled: true,
+                    bevelThickness: 1,  // 10
+                    bevelSize: 0.8,    // 8
+                    bevelOffset: 0,
+                    bevelSegments: 1  // 5
+                });
+
+                textGeo.computeBoundingBox();
+                const centerOffset = - 0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+
+                const materials = [
+                    new THREE.MeshPhongMaterial({ color: 0xffaa00, flatShading: true }), // front
+                    new THREE.MeshPhongMaterial({ color: 0x55aa55 }) // side
+                ];
+
+                let textMesh = new THREE.Mesh(textGeo, materials);
+                textMesh.scale.z = 0.5;
+                textMesh.scale.x = 0.5;
+                textMesh.scale.y = 0.5;
+
+                textMesh.position.x = 0 //  -breedte/2 ; //  centerOffset;
+                textMesh.position.y = - 0;   // breedte * 0.1;
+                textMesh.position.z = + breedte * 0.49;
+                textMesh.rotation.y = Math.PI * 1;  // * 0.52;
+
+                let textMeshC = textMesh.clone();
+                textMeshC.position.y = - 0;  // breedte * 0.0;
+                textMeshC.position.z = - breedte * 0.51;
+                textMeshC.rotation.y = Math.PI * 1;
+
+                let textMeshR = textMesh.clone();
+                textMeshR.position.y = 0;
+                textMeshR.position.z = 0;
+                textMeshR.position.x = - breedte * 0.51;
+                textMeshR.rotation.y = Math.PI * 0.5;
+
+                let textMeshL = textMesh.clone();
+                textMeshL.position.y = + 10;
+                textMeshL.position.x = + breedte * 0.51;
+                textMeshL.position.z = 0;
+                textMeshL.rotation.y = -Math.PI * 0.5;
+
+                scene.add(textMesh);
+                scene.add(textMeshC);
+                scene.add(textMeshR);
+                scene.add(textMeshL);
+
+            });
+        }        
+    </script>
+</body>
+
+</html>

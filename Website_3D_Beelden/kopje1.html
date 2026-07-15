@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+		<meta name="author" content=" Rob van Cooten. Waalre. ">
+		<meta name="keywords" content="3D modellen, Threejs, Keramiek">
+		<meta name="description"
+			content="Toon op allerlei manieren keramieke beelden. De beelden zijn van alle kanten te bekijken.">
+		<meta name="description" content="Keramieke beelden gemaakt door Marjan van Cooten.">
+
+		<style>
+			html,
+			body {
+				height: 100%;
+				margin: 0;
+			}
+		</style>
+	</head>
+
+	<body>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"					
+				}
+			}
+		</script>
+
+		<script type="module">
+			import * as THREE from 'three';
+			import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+
+			let container;
+			let camera, scene, renderer;
+
+			let windowHalfX = window.innerWidth / 2;
+			let windowHalfY = window.innerHeight / 2;
+
+			let kop;
+			let r = +1;
+
+			// Initiate function or other initializations here
+			init();
+
+			function init() {
+				container = document.createElement('div');
+				document.body.appendChild(container);
+
+				camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+				camera.position.z = 50;
+
+				// scene
+				scene = new THREE.Scene();
+			    scene.background = new THREE.Color( 0xcccccc );   			
+
+				// White directional light shining from the top.
+				const directionalLight1 = new THREE.DirectionalLight(0xffffff, 10.1);
+				directionalLight1.position.set(100, 100, 100)
+				scene.add(directionalLight1);
+
+				const urlParams = new URLSearchParams(window.location.search);
+				const kop_nummer = urlParams.get('nummer');
+				// alert(kop_nummer) ; 
+
+				laadModel(kop_nummer);
+
+				//  renderer = new THREE.WebGLRenderer();
+				renderer = new THREE.WebGLRenderer({ alpha: true }); // init like this
+				renderer.setClearColor(0xffffff, 1.0); // second param is opacity, 0 => transparent     
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				container.appendChild(renderer.domElement);
+
+				window.addEventListener('resize', onWindowResize);
+				animate();
+
+			}   // einde init
+
+			function onWindowResize() {
+
+				windowHalfX = window.innerWidth / 2;
+				windowHalfY = window.innerHeight / 2;
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize(window.innerWidth, window.innerHeight);
+
+			}
+			//
+
+			function animate() {
+				requestAnimationFrame(animate);
+				render();
+			}
+
+			function render() {
+				camera.lookAt(scene.position);
+
+				if (kop != null) {
+					if (kop.rotation.z > 0.5)
+						r = -1;
+					if (kop.rotation.z < -0.5)
+						r = +1;
+
+					kop.rotation.z += 0.005 * r;
+				}
+
+				renderer.render(scene, camera);
+			}
+
+			function kleurObject() {
+				kop.traverse((o) => {
+					if (o.isMesh) {
+						o.material.emissive = new THREE.Color('silver');  // whitesmoke lightslategrey
+						// o.material.metalness = 1.0;  // 0..1 
+					}
+				});
+			}
+
+			function laadModel(nr) {
+				let pad ; 
+				if (location.hostname == "localhost")
+					pad = "./modellen/glb/"
+				else
+					pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+					
+					let modellen = new Array();
+					modellen[1] = pad + 'bladerKop.glb';
+					modellen[2] = pad + 'koppie.glb';
+					modellen[3] = pad + 'ladyHead.glb';
+					modellen[4] = pad + 'pinkelEye.glb';															
+
+				// let model = pad + 'bladerKop.glb';
+				let model = modellen[nr] ; 
+				//  console.log("model: " + model)
+				const loader = new GLTFLoader();
+
+				loader.load(model, function (gltf) {
+					kop = gltf.scene.children[0];
+
+					kop.scale.multiplyScalar(1.5);  // 50 
+					kop.position.y = -7 ; 
+					//	kop.metalness = 0.0; // dir light werkt anders niet...?
+					// kop.texture.encoding = THREE.sRGBEncoding ; 
+
+					scene.add(kop);
+				//	kleurObject();
+				},
+					// called while loading is progressing
+					function (xhr) {
+						;
+						// 	console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+					},
+					// called when loading has errors
+					function (error) {
+
+						console.log('O, 0 An error happened during loading');
+
+					}
+				);    // einde loader
+			}   // einde laadModel
+		</script>
+
+	</body>
+
+</html>

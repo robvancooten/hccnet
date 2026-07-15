@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Pool.</title>
+    <meta charset="utf-8">
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D models, Threejs, Ceramics">
+    <!--  https://sourceforge.net/projects/three-js.mirror/  -->
+    <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="css/menu.css">
+    <link rel="shortcut icon" href="./images/ernie.ico">
+</head>
+
+<body>
+    <div id="menu">
+        <!-- tekst dynamisch-->
+    </div>
+
+    <script type="importmap">
+			{
+				"imports": {
+                    "three": "./build/three.module.js"
+				}
+			}
+		</script>
+
+    <script type="module">
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+        import * as THREE from 'three';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+
+        const schaduw = false;
+        let container, menu;
+
+        let camera, scene, renderer;
+        let controls;
+
+
+        let windowHalfX = window.innerWidth / 2;
+        let windowHalfY = window.innerHeight / 2;
+
+        let bal, kubus;
+        let spotLight, spotLightHelper;
+        const radius = 20;
+        const breedte = 200;
+        let xr = 1, yr = 1, zr = +1;
+
+        init();
+        animate();
+
+        function init() {
+            maakMenu();           
+            maakScene();
+            maakbelichting();
+            maakBol();
+
+            maakKubus();
+            maakRenderer();
+
+            container.appendChild(renderer.domElement);
+            //	document.addEventListener('mousemove', onDocumentMouseMove);
+            window.addEventListener('resize', onWindowResize);
+            startOrbitController();
+
+        }   // einde init
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function startOrbitController() {
+            controls = new OrbitControls(camera, renderer.domElement);
+
+            controls.addEventListener('change', render);
+            controls.listenToKeyEvents(window);    // pijltjes toetsen.
+
+            //	controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+            //		controls.dampingFactor = 0.05;
+
+            //    controls.minPolarAngle = -Math.PI * 1.5;     // tilt. , x as.   0.35          
+            //    controls.maxPolarAngle = Math.PI * 1.6;      // 0.6    
+
+            //    controls.minAzimuthAngle = -Math.PI * 2;      // rot y as.
+            //     controls.maxAzimuthAngle = Math.PI * 2;
+
+            //   controls.target.set(0, 0, 2);
+            controls.minDistance = 20.0;
+            controls.maxDistance = 800.0;
+
+            setCamera(10);
+
+            controls.update();
+        }
+        //
+
+        function animate() {
+            requestAnimationFrame(animate);
+            render();
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+            spotLight.target = bal;
+            let afstand = berekenAfstandSpotLightBal();
+            spotLight.distance = afstand;
+            spotLight.angle = 0.15 * Math.PI * radius / afstand;
+
+            //  scene.add(spotLightHelper);
+            spotLightHelper.update();
+
+            beweegBal();
+        }
+
+        function maakbelichting() {
+            const ambientLight = new THREE.AmbientLight(0xcccccc, 1.5);
+            scene.add(ambientLight);
+
+            // White directional light at half intensity shining from the top: 0,5 
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);  // 0.5 
+            directionalLight.position.set(-breedte * 0.6, -breedte * 0.0, breedte * 0.0);
+            directionalLight.target.position.set(0, 0, 0);
+
+            if (schaduw) {
+                directionalLight.castShadow = true;
+                // directionalLight.shadowCameraLeft = -1024;  oude code 
+                //  directionalLight.shadowCameraRight = 1024;
+                directionalLight.shadow.camera.right = breedte / 2;
+                directionalLight.shadow.camera.left = - breedte / 2;
+                directionalLight.shadow.camera.top = breedte / 2;
+                directionalLight.shadow.camera.bottom = - breedte / 2;
+                directionalLight.shadow.camera.near = 10; //0.5 ; 
+                directionalLight.shadow.camera.far = 1.1 * breedte;
+                directionalLight.shadow.mapSize.width = breedte / 2
+                directionalLight.shadow.mapSize.height = breedte / 2;
+                //   scene.add(new THREE.CameraHelper(directionalLight.shadow.camera));
+            }
+
+            scene.add(directionalLight);
+
+
+            /*       SPOTLIGHT:    */
+            // SpotLight( color : Integer, intensity : Float, distance : Float, angle : Radians, penumbra : Float, decay : Float )
+            let intens = 50;
+            spotLight = new THREE.SpotLight(0x00cc00, intens, breedte * 1.5, Math.PI * 0.04);
+            spotLight.position.set(breedte * 0.5, 0 * breedte * 0.5, 0 * breedte * 0.5);
+            spotLight.decay = 0;
+            if (schaduw)
+                spotLight.castShadow = true;
+            // spotLight.map = textures[ 'disturb.jpg' ]; 
+            scene.add(spotLight);
+
+            spotLightHelper = new THREE.SpotLightHelper(spotLight);
+            scene.add(spotLightHelper);
+
+            spotLight.shadow.camera.near = 10; //0.5 ; 
+            spotLight.shadow.camera.far = 1.1 * breedte;
+
+            spotLight.shadow.mapSize.width = 10; breedte / 4;  // 1024
+            spotLight.shadow.mapSize.height = breedte / 4;  // 1024;
+
+            //   scene.add(new THREE.CameraHelper(spotLight.shadow.camera));
+
+        }
+        function setCamera(value) {
+            let positive = Math.abs(value); //Absolute value to prevent negative increments
+            //   camera.position.set(1, 1, 1); //  Default of 1 so it dollys to the desired position
+
+            //Moving camera.
+            //  camera.position.x *= positive;
+            //  camera.position.y *= positive;
+            camera.position.z *= positive;
+        };
+        function berekenAfstandSpotLightBal() {
+            let a = (bal.position.x - spotLight.position.x);
+            let b = (bal.position.y - spotLight.position.y);
+            let c = (bal.position.z - spotLight.position.z);
+            let d = Math.sqrt(a * a + b * b + c * c);
+            return d;
+        }
+
+        function beweegBal() {
+            let rot = 0.05;
+            bal.rotation.x += rot * xr * yr * zr;
+            //    bal.rotation.y += rot * yr;
+            //   bal.rotation.z += rot * zr;
+
+            if (bal.position.x > (breedte * 0.5 - radius))
+                xr = -1;
+            else if (bal.position.x < - (breedte * 0.5 - radius))
+                xr = +1;
+            bal.position.x += 0.5 * xr;
+
+            if (bal.position.y > (breedte * 0.5 - radius))
+                yr = -1;
+            else if (bal.position.y < - (breedte * 0.5 - radius))
+                yr = +1;
+            bal.position.y += 0.7 * yr;
+
+            if (bal.position.z > (breedte * 0.5 - radius))
+                zr = -1;
+            else if (bal.position.z < - (breedte * 0.5 - radius))
+                zr = +1;
+            bal.position.z += 0.9 * zr;
+        }
+
+        function maakMenu() {
+            let menu = document.getElementById("menu");
+            if (isTouchDevice())
+                menu.innerHTML = leesMenuTekst() + "3D Pool -use fingers to zoom, rotate-";
+            else
+                menu.innerHTML = leesMenuTekst() + "3D Pool -Zoom met muiswheel-Rotate with LeftMouseButton.";
+
+            kleurActiveLink();
+        }
+
+        function maakKubus() {
+            const texture = new THREE.TextureLoader().load('./images/kop.jpg');
+            let geometry = new THREE.BoxGeometry(breedte, breedte, breedte);
+            let material = new THREE.MeshPhongMaterial({ map: texture });
+            material.side = THREE.BackSide; // BackSide, FrontSide, DoubleSide. 
+            material.color.set(0x33ff33);
+            // material.shininess = 150;
+            //material.specular.set(0x005500);
+            kubus = new THREE.Mesh(geometry, material);
+            //    kubus.position.z = -500 ;
+            kubus.receiveShadow = true;
+            kubus.castShadow = false;
+            scene.add(kubus);
+        }
+        function maakScene() {
+            container = document.createElement('div');
+            document.body.appendChild(container);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+            camera.position.z = 50;
+
+            // scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x003300);
+            scene.add(camera);
+        }
+
+        function maakBol() {
+            const geometry = new THREE.SphereGeometry(radius, 16, 32);
+            const textuur = new THREE.TextureLoader().load('images/kop.jpg');
+            const mat = new THREE.MeshPhongMaterial({
+                map: textuur,
+                color: 0x33bb33,
+                shininess: 220,    //  standaard 30 
+                side: THREE.FrontSide,
+                // metalness: 0.5,   niet voor dit materiaal
+                emissive: 0x001100,   // 'darkgreen'
+                specular: 0x001500,
+                reflectivity: 0.0   // doet niet veel
+
+            });
+            // const material = new THREE.MeshBasicMaterial({ color: 0xcc5555 });
+            bal = new THREE.Mesh(geometry, mat);
+            // bal.position.z = 35;
+            //    bal.scale.x = 0.5;   
+            if (schaduw) bal.castShadow = true;
+            if (schaduw) bal.receiveShadow = true;
+            scene.add(bal);
+        }
+
+        function maakRenderer() {
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            if (schaduw) renderer.shadowMap.enabled = true;
+            if (schaduw) renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            container.appendChild(renderer.domElement);                     
+        }
+
+    </script>
+
+</body>
+
+</html>
