@@ -5,12 +5,14 @@ function leesMenuTekst() {
     let extralink2 = "";
     let menu_tekst = "";
     let x = location.hostname;
-    if (x == "localhost")
+    if (x == "llocalhost")
         pad = "http://localhost/www/hccnet/Website_3D_Beelden/"
     else
-        pad = "https://home.hccnet.nl/r.van.cooten/Website_3D_Beelden/";
+        pad = "https://robvancooten.github.io/hccnet/Website_3D_Beelden/";
 
-    //     alert("pad= " + pad ); 
+        //  alert("pad= " + pad ); 
+
+        pad = "https://robvancooten.github.io/hccnet/Website_3D_Beelden/";        
 
     const urlParams = new URLSearchParams(window.location.search);
     let menu_keuze = urlParams.get('menu_keuze');
@@ -43,7 +45,7 @@ function leesMenuTekst() {
             '<li><a href=' + pad + 'flyer.html?menu_keuze=3&link_nummer=0        title="Expositie wordt opgebouwd via parachute.">back4</a></li>' +
 
             '<li style="float:right"><a href=' + pad + 'howto.html?menu_keuze=4&link_nummer=7  title="The Making Of.">HOWTO</a></li>' +
-            '<li style="float:right"><a href="https://home.hccnet.nl/r.van.cooten/" title="Website van Rob van Cooten.">Home</a></li>' +
+            '<li style="float:right"><a href="https://robvancooten.github.io/hccnet/" title="Website van Rob van Cooten.">Home</a></li>' +
             ' </ul>';
     }
 
@@ -61,7 +63,7 @@ function leesMenuTekst() {
             '<li><a href=' + pad + 'fps.html?menu_keuze=5&link_nummer=0  title="Walking along ceramic heads."> MORE5 </a></li>' +
 
             '<li style="float:right"><a href=' + pad + 'howto.html?menu_keuze=4&link_nummer=7  title="The Making Of.">HOWTO</a></li>' +
-            '<li style="float:right"><a href="https://home.hccnet.nl/r.van.cooten/" title="Website van Rob van Cooten.">Home</a></li>' +
+            '<li style="float:right"><a href="https://robvancooten.github.io/hccnet/" title="Website van Rob van Cooten.">Home</a></li>' +
             ' </ul>';
     }
 
@@ -77,7 +79,7 @@ function leesMenuTekst() {
             '<li><a href=' + pad + 'flyer.html?menu_keuze=4&link_nummer=0  title="parachute.">MORE4</a></li>' +
 
             '<li style="float:right"><a   href="https://robvancooten.write2me.nl/" title="Guestbook.">Write2Me</a></li>' +
-            '<li style="float:right"><a   href="https://home.hccnet.nl/r.van.cooten/" title="Website van Rob van Cooten.">Home</a></li>' +
+            '<li style="float:right"><a   href="https://robvancooten.github.io/hccnet/" title="Website van Rob van Cooten.">Home</a></li>' +
             ' </ul>';
     }
     else if (menu_keuze == 2) {
@@ -93,7 +95,7 @@ function leesMenuTekst() {
             '<li><a href=' + pad + 'sprites.html?menu_keuze=3&link_nummer=0  title="sprites koppen.">MORE3</a></li>' +
 
             '<li style="float:right"><a href="https://threejs.org/manual/#en/fundamentals" title="Threejs examples.">Examples.</a></li>' +
-            '<li style="float:right"><a href="https://home.hccnet.nl/r.van.cooten/" title="Website van Rob van Cooten.">Home</a></li>' +
+            '<li style="float:right"><a href="https://robvancooten.github.io/hccnet/" title="Website van Rob van Cooten.">Home</a></li>' +
             ' </ul>';
     }
     else {
@@ -110,7 +112,7 @@ function leesMenuTekst() {
             '<li><a href=' + pad + 'meermin.html?menu_keuze=2&link_nummer=0  title="Meermin.">MORE2</a></li>' +
 
             '<li style="float:right"><a href="https://threejs.org/examples/" title="Threejs voorbeelden.">Threejs</a></li>' +
-            '<li style="float:right"><a href="https://home.hccnet.nl/r.van.cooten/" title="Website van Rob van Cooten.">Home</a></li>' +
+            '<li style="float:right"><a href="https://robvancooten.github.io/hccnet/" title="Website van Rob van Cooten.">Home</a></li>' +
             ' </ul>';
     }
 
