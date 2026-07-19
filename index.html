@@ -3,6 +3,7 @@
 
 <head>
   <title>Website of Rob van Cooten.</title>
+  <!--   https://robvancooten.github.io/hccnet/     -->
   <meta charset="utf-8">
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +16,20 @@
   <link href="Website_3D_Beelden/css/menu.css" rel="stylesheet" type="text/css">
 
   <link rel="shortcut icon" href="./images/rob.ico">
+  <style>
+    img#bezoekersteller {
+      float:right; 
+      margin-right:10%; 
+      width: 15%;
+
+      clear: both;
+    }
+
+    img {
+      clear: both;
+      display: table;
+    }
+  </style>
 
   <script src="./Website_3D_Beelden/build/jquery.js"></script>
   <!--  "https://code.jquery.com/jquery-latest.min.js" -->
@@ -65,7 +80,15 @@
     <!-- onclick="close_gordijn();" disabled>    -->
   </div>
   <div id="ani"> </div>
-  <div id="view"> <img src="images/view.png" title="grappig he..." alt="grappige oogjes"> </div>
+  <div id="view">
+    <!-- <img src="images/view.png" title="grappig he..." alt="grappige oogjes">    -->
+    <img src="images/view.png" title="grappig he..." alt="grappige oogjes">
+    <img alt="bezoekersteller" id="bezoekersteller"
+    src="https://hits.sh/robvancooten.github.io/hccnet.svg?style=flat-square&label=&nbsp;&color=transparent">
+  <!-- ?style=flat-square&label=Bezoekers&color=ffffff   -->    
+    <img src="images/view.png" title="grappig he..." alt="grappige oogjes">    
+  </div>
+
   <div id="footer">
     <!-- via jquery disabled -->
     <!--  Chrome staat dit niet toe:   
@@ -119,8 +142,10 @@
 
       if (location.hostname == "localhost")
         t.innerHTML = messlocal + " " + mess
-      else
-        t.innerHTML = mess
+      else {
+        t.innerHTML = mess;
+
+      }
     }
 
     $(document).ready(function () {
