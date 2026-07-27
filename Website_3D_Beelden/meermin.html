@@ -8,6 +8,7 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		-->
 	<meta name="author" content=" Rob van Cooten. Waalre. ">
+	<!--   http://localhost/www/hccnet/Website_3D_Beelden/meermin.html   -->
 	<meta name="keywords" content="3D models, Threejs, Ceramics">
 	<meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
 	<link type="text/css" rel="stylesheet" href="css/main.css">
@@ -56,7 +57,7 @@
 		let insetWidth, insetHeight;
 		let portraitmode = true;
 
-		let object;
+		let meermin;
 		let pad = "";
 		let nummer = 0;
 		var modellen = new Array();
@@ -69,6 +70,7 @@
 		let stats;
 
 		let alfa = +1, teken = +1, mix = 0;
+		let envMap;  // voor spiegel 
 
 		const wit = new THREE.Color(0xffffff);
 		const grijs = new THREE.Color(0xdddddd);
@@ -90,6 +92,8 @@
 
 			}
 			maakScene();
+			laadKubus();
+			maakBol();
 
 			maakBelichting();
 
@@ -120,14 +124,15 @@
 			const loader = new GLTFLoader();
 
 			loader.load(model, function (gltf) {
-				object = gltf.scene.children[0];
+				meermin = gltf.scene.children[0];
 
-				object.scale.multiplyScalar(1);  // 50 
-				//	object.metalness = 0.0; // dir light werkt anders niet...?
-				// object.texture.encoding = THREE.sRGBEncoding ; 
+				meermin.scale.multiplyScalar(1);  // 50 
+				meermin.position.y = 0;  // -20
+				//	meermin.metalness = 0.0; // dir light werkt anders niet...?
+				// meermin.texture.encoding = THREE.sRGBEncoding ; 
 
-				scene.add(object);
-				kleurObject();
+				scene.add(meermin);
+				kleurMeermin();
 			},
 				// called while loading is progressing
 				function (xhr) {
@@ -208,14 +213,14 @@
 
 			renderer.setScissorTest(false);
 
-			if (object != null) {
-				if (object.rotation.z > 0.5)
+			if (meermin != null) {
+				if (meermin.rotation.z > 0.5)
 					r = -1;
-				if (object.rotation.z < -0.5)
+				if (meermin.rotation.z < -0.5)
 					r = +1;
 
 				if (move)
-					object.rotation.z += 0.005 * r;
+					meermin.rotation.z += 0.005 * r;
 			}
 		}  // einde render 
 
@@ -312,8 +317,8 @@
 
 		}
 
-		function kleurObject() {
-			object.traverse((o) => {
+		function kleurMeermin() {
+			meermin.traverse((o) => {
 				if (o.isMesh) {
 					o.material.emissive = new THREE.Color(0x333333);
 					o.material.metalness = 0.5;  // 0..1 
@@ -345,15 +350,15 @@
 				const centerOffset = - 0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
 
 				const materials = [
-					new THREE.MeshPhongMaterial({ color: 0x555555, flatShading: true }), // front
-					new THREE.MeshPhongMaterial({ color: 0x555555 }) // side
+					new THREE.MeshPhongMaterial({ color: 0xaaaa00, flatShading: true }), // front
+					new THREE.MeshPhongMaterial({ color: 0x555500 }) // side
 				];
 
 				let textMesh = new THREE.Mesh(textGeo, materials);
 				textMesh.scale.z = 0.05;
 
 				textMesh.position.x = centerOffset;
-				textMesh.position.y = 10;
+				textMesh.position.y = -20;
 				textMesh.rotation.y = Math.PI * 2;
 
 				scene.add(textMesh);
@@ -451,7 +456,52 @@
 			scene = new THREE.Scene();
 			scene.background = new THREE.Color(0x000000);
 			scene.add(camera);
-		}			
+		}
+
+		function laadKubus() {
+			// load an environment map (cube texture)
+			const loader = new THREE.CubeTextureLoader();
+
+			let plaatjes = new Array();
+			let dir= './images/koppen/'
+			plaatjes[0] = dir +'kop1.jpg';
+			plaatjes[1] = dir + 'kop2.jpg';
+			plaatjes[2] = dir + 'kop3.jpg';
+			plaatjes[3] = dir + 'kop4.jpg';
+			plaatjes[4] = dir + 'kop5.jpg';
+			plaatjes[5] = dir + 'kop6.jpg';
+
+			envMap = loader.load([
+				plaatjes[0],plaatjes[1],
+				plaatjes[2],plaatjes[3],
+				plaatjes[4],plaatjes[5]
+
+				/*
+				'./images/skybox/woman1.jpg', './images/koppen/kop1.jpg',
+				'./images/skybox/woman1.jpg', './images/skybox/woman1.jpg',
+				'./images/skybox/woman1.jpg', './images/skybox/woman1.jpg'  */
+			]);
+
+			scene.background = envMap;
+			scene.environment = envMap; // important for PBR materials
+
+		}
+
+		function maakBol() {
+			// mirror material sphere
+			const geometry = new THREE.SphereGeometry(10, 64, 64);
+			const material = new THREE.MeshStandardMaterial({
+				metalness: 1.0,   // 1 full metal
+				roughness: 0.0,   // perfectly smooth → mirror-like
+				envMap: envMap
+			});
+
+			const bol = new THREE.Mesh(geometry, material);
+			bol.position.y = +30;
+			scene.add(bol);
+
+		}
+
 	</script>
 
 </body>
