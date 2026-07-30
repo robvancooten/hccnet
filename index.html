@@ -76,7 +76,7 @@
   <div id="gordijn_buttons">
     <input type="button" id="buttonL" value="open" title="Press to open curtains." class="unselectable">
     <!--   onclick="open_gordijn();"> -->
-    <input type="button" id="buttonR" value="close" title="Press to close curtains." class="unselectable" disabled>
+    <input type="button" id="buttonR" value="CCclose" title="Press to close curtains." class="unselectable" disabled>
     <!-- onclick="close_gordijn();" disabled>    -->
   </div>
   <div id="ani"> </div>
@@ -119,6 +119,8 @@
     let spaties = "&nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp;";
     let mess = "";
     let messlocal = "<h4>" + spaties + " HELLO localhost.<br>";
+    messlocal += spaties + '<a href="https://robvancooten.goatcounter.com" title="Bezoekers statistieken via Goatcounter.">Bezoekers Teller Goatcounter.</a><br>' ;
+
     messlocal += spaties + "Threejs Versie: " + THREE.REVISION + "<br>";
     messlocal += spaties + "HTML mode: " + document.compatMode;
 
@@ -216,7 +218,10 @@
 
     }
 
-  </script>
+</script>
+
+<script data-goatcounter="https://robvancooten.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </body>
 
 </html>
