@@ -9,11 +9,11 @@ ul {
   font-size: 2vw;
   }
   
-  li {
+  ul li {
 	float: left;
   }
   
-  li a {
+  ul li a {
 	display: block;
 	color:#000;
 	background-color: #ddd;
@@ -27,8 +27,9 @@ ul {
   }    
   werkt niet    
 */ 
-  li a:hover {
+ ul li a:hover {
 	background-color: #0f0;
+  font-size: 200%;
   }  
 
   li a:active {
