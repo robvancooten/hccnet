@@ -5,14 +5,12 @@ function leesMenuTekst() {
     let extralink2 = "";
     let menu_tekst = "";
     let x = location.hostname;
-    if (x == "llocalhost")
+    if (x == "localhost")
         pad = "http://localhost/www/hccnet/Website_3D_Beelden/"
     else
         pad = "https://robvancooten.github.io/hccnet/Website_3D_Beelden/";
 
-        //  alert("pad= " + pad ); 
-
-        pad = "https://robvancooten.github.io/hccnet/Website_3D_Beelden/";        
+    //  alert("pad= " + pad );     
 
     const urlParams = new URLSearchParams(window.location.search);
     let menu_keuze = urlParams.get('menu_keuze');
@@ -110,8 +108,8 @@ function leesMenuTekst() {
             '<li><a href= ' + pad + 'drones.html?menu_keuze=0&link_nummer=7   title="Multiple animated Drones.">Drones</a></li>' +
             witregel +
             '<li><a href=' + pad + 'meermin.html?menu_keuze=2&link_nummer=0  title="Meermin.">MORE2</a></li>' +
-
-            '<li style="float:right"><a href="https://threejs.org/examples/" title="Threejs voorbeelden.">Threejs</a></li>' +
+            witregel +
+            '<li><a href="https://threejs.org/examples/" title="Threejs voorbeelden.">Threejs</a></li>' +
             '<li style="float:right"><a href="https://robvancooten.github.io/hccnet/" title="Website van Rob van Cooten.">Home</a></li>' +
             ' </ul>';
     }
