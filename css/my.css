@@ -25,7 +25,7 @@ body {
 div#info,
 div#menu {
 	margin: auto;
-	width: 80%;
+	width: 90%;
 	background-color: #CCC;
 	/* margin-left: 100px; */
 	z-index: +100;
