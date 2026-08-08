@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>Website of Rob van Cooten.</title>
+  <title>Website of Rob van Cooten met GoatCounter.</title>
   <!--   https://robvancooten.github.io/hccnet/     -->
   <meta charset="utf-8">
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -18,8 +18,8 @@
   <link rel="shortcut icon" href="./images/rob.ico">
   <style>
     img#bezoekersteller {
-      float:right; 
-      margin-right:10%; 
+      float: right;
+      margin-right: 10%;
       width: 15%;
 
       clear: both;
@@ -39,7 +39,7 @@
 <body>
   <div id="menu"> js vult dit in.... </div>
   <div id="bubbelinfo">
-    <!-- js vult tekst dit -->
+    <!-- js vult dit -->
   </div>
   <br>
   <br><br>
@@ -48,6 +48,7 @@
   <br><br>
   <h3><a href="https://robvancooten.write2me.nl" title="Guestbook Rob van Cooten">Guestbook.</a></h3>
   <br>
+
   <div id="spotlights">
     <span> Spelen met licht...
       <br>
@@ -65,8 +66,10 @@
   <div id="particles">
     <!-- Hierin draait ./particles/index.html via jQuery.  -->
   </div>
+
   <div id="gordijnen">
     <img src="images/kopL.jpg" id="kopL" alt="Head on Left side." title="Head on Left side.">
+
     <img src="images/gordijn.jpg" id="gordijnL" alt="gordijnL">
     <img src="images/gordijn.jpg" id="gordijnR" alt="gordijnR">
 
@@ -74,19 +77,21 @@
   </div>
 
   <div id="gordijn_buttons">
-    <input type="button" id="buttonL" value="open" title="Press to open curtains." class="unselectable">
+    <input type="button" id="buttonL" value="Open" title="Press to open curtains." class="unselectable">
     <!--   onclick="open_gordijn();"> -->
-    <input type="button" id="buttonR" value="CCclose" title="Press to close curtains." class="unselectable" disabled>
+    <input type="button" id="buttonR" value="Close" title="Press to close curtains." class="unselectable" disabled>
     <!-- onclick="close_gordijn();" disabled>    -->
   </div>
+
   <div id="ani"> </div>
+
   <div id="view">
     <!-- <img src="images/view.png" title="grappig he..." alt="grappige oogjes">    -->
     <img src="images/view.png" title="grappig he..." alt="grappige oogjes">
     <img alt="bezoekersteller" id="bezoekersteller"
-    src="https://hits.sh/robvancooten.github.io/hccnet.svg?style=flat-square&label=&nbsp;&color=transparent">
-  <!-- ?style=flat-square&label=Bezoekers&color=ffffff   -->    
-    <img src="images/view.png" title="grappig he..." alt="grappige oogjes">    
+      src="https://hits.sh/robvancooten.github.io/hccnet.svg?style=flat-square&label=&nbsp;&color=transparent">
+    <!-- ?style=flat-square&label=Bezoekers&color=ffffff   -->
+    <img src="images/view.png" title="grappig he..." alt="grappige oogjes">
   </div>
 
   <div id="footer">
@@ -119,7 +124,7 @@
     let spaties = "&nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp;";
     let mess = "";
     let messlocal = "<h4>" + spaties + " HELLO localhost.<br>";
-    messlocal += spaties + '<a href="https://robvancooten.goatcounter.com" title="Bezoekers statistieken via Goatcounter.">Bezoekers Teller Goatcounter.</a><br>' ;
+    messlocal += spaties + '<a href="https://robvancooten.goatcounter.com" title="Bezoekers statistieken via Goatcounter.">Bezoekers Teller Goatcounter.</a><br>';
 
     messlocal += spaties + "Threejs Versie: " + THREE.REVISION + "<br>";
     messlocal += spaties + "HTML mode: " + document.compatMode;
@@ -127,26 +132,14 @@
     if (window.jQuery) {       // jQuery is loaded => print the version     
       messlocal = messlocal + '<br>' + spaties + 'jQuery versie: ' + (jQuery.fn.jquery) + "</h4>";
 
-      /*       
-      document.getElementById("kopje").onmousemove = function() {mouseOver()};
-      document.getElementById("kopje").onmouseup = function() {mouseOut()};
-      
-      function mouseOver() {
-        document.getElementById("kopje").style.color = "red";
-        //  alert("Over me"); 
-      }
-      function mouseOut() {
-        document.getElementById("kopje").style.color = "transparent";
-      }  */
-
       toonFeestjes();
+
       let t = document.getElementById("footer");
 
       if (location.hostname == "localhost")
         t.innerHTML = messlocal + " " + mess
       else {
         t.innerHTML = mess;
-
       }
     }
 
@@ -166,8 +159,6 @@
 
       $("#particles").load("particles/index.html");
 
-      //  if (location.hostname != "localhost")
-      //    document.getElementById("footer").style.display = "none";
     });   // end function ready. 
 
     function toonFeestjes() {
@@ -215,13 +206,36 @@
       else if (aantaldagentotnieuwjaar > 0)
         mess = mess + "<h4>" + spaties + "aantal dagen tot Nieuwjaar: " + toWord(aantaldagentotnieuwjaar) + "<br>";
       else mess = mess + "<h4>" + spaties + "Geen feestjes voorlopig " + "<br>";
-
     }
 
-</script>
+    /*
+    data-goatcounter="https://robvancooten.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"  
+            */
 
-<script data-goatcounter="https://robvancooten.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
+    /*            
+    // Source - https://stackoverflow.com/a/15521522
+    
+    var head = document.getElementsByTagName('head')[0];
+    var script = document.createElement('script');
+    
+    // script.type = 'text/javascript';
+    
+    if (location.hostname == "localhost") 
+        script.setAttribute('data-goatcounter','"https://robvancooten.goatcounter.com/count" async src="//gc.zgo.at/count.js" ');
+    // else
+       //  script.src = "js/jquery_computer.js";
+    
+    head.appendChild(script)
+    */
+
+  </script>
+
+
+  <script data-goatcounter="https://robvancooten.goatcounter.com/count" async src="//gc.zgo.at/count.js">
+  </script>
+
+
 </body>
 
 </html>
