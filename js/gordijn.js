@@ -19,7 +19,7 @@ function open_gordijn() {
 
   $("#gordijnL").animate({ width: w * 0.05 }, tijd, "swing", function () {
     document.getElementById('buttonR').disabled = false;
-    document.getElementById('buttonR').value = "close";
+    document.getElementById('buttonR').value = "Close";
     document.getElementById('buttonR').style.opacity = "1";
     return true
   });
