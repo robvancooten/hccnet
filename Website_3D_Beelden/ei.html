@@ -14,6 +14,7 @@
     <link type="text/css" rel="stylesheet" href="css/main.css">
     <link type="text/css" rel="stylesheet" href="css/menu.css">
     <link rel="shortcut icon" href="./images/ernie.ico">
+
     <style>
         #reset {
             position: absolute;
@@ -26,10 +27,39 @@
             background-color: lightgreen;
             color: darkgreen;
             border: 5px solid darkgreen;
-            text-transform: lowercase;
             z-index: +10;
         }
+
+        button {
+            padding: 8px 14px;
+            font-size: 15px;
+            cursor: pointer;
+            text-transform: lowercase;
+            text-transform: capitalize;
+        }
     </style>
+
+    <!-- Highlight.js stylesheet -->
+    <!-- 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+    <script src="https://unpkg.com/@highlightjs/cdn-assets@11.11.2/highlight.min.js"></script>    
+    -->
+
+    <style>
+        .hljs {
+            background: yellow;
+            color: blue
+        }
+
+        #codeBlock {
+            display: none;
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            background: yellow;
+        }
+    </style>
+
 </head>
 
 <body>
@@ -37,15 +67,21 @@
         <p>Hier komt dynamisch het menu.</p>
     </div>
 
-    <button type="button" id="reset"> Reset.</button>
 
+    <div>
+        <button type="button" id="reset"> Reset.</button>
+    </div>
+
+    <pre id="codeBlock">
+<code>
+<!-- Your HTML/JS code goes here -->
     <script type="importmap">
-			{
-				"imports": {
-                    "three": "./build/three.module.js"
-				}
-			}
-		</script>
+    {
+        "imports": {
+            "three": "./build/three.module.js"
+        }
+    }
+	</script>
 
     <script type="module">
         import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
@@ -55,7 +91,8 @@
 
         import { FontLoader } from './jsm/loaders/FontLoader.js';
         import { TextGeometry } from './jsm/geometries/TextGeometry.js';
-
+        /* Highlight.js script, iets aangepast. */
+        import hljs from './js/highlight.js';
 
         let container, menu;
 
@@ -88,18 +125,14 @@
             laadModel();
             maakRenderer();
 
-            //	document.addEventListener('mousemove', onDocumentMouseMove);
+            maakButtons();
+            if (location.hostname === "localhost")
+                hljs.highlightAll();
+
+
             window.addEventListener('resize', onWindowResize);
             // document.getElementsByTagName("canvas")[0].addEventListener("pointerdown", pressingDown, false);
-            let reset = document.getElementById('reset');
-            reset.addEventListener("pointerdown", pressingDown, false);
 
-            function pressingDown(e) {
-                //    alert("YES klik"); 
-                eiScale();
-                geboren = false;
-                maakTekst("");
-            }
 
             startOrbitController();
 
@@ -355,8 +388,33 @@
             ei.scale.x = 3.5;
             ei.scale.y = 2.5;
             ei.scale.z = 2.5;
-        }            
+        }
+
+        function maakButtons() {
+            if (location.hostname === "localhost") {
+                const resetBtn = document.getElementById("reset");
+                let html = '<button type="button" id="showCodeBtn">Show code</button>';
+                resetBtn.insertAdjacentHTML("afterend", html);
+                resetBtn.addEventListener("pointerdown", pressingDown, false);
+
+                document.getElementById("showCodeBtn").addEventListener("pointerdown", function () {
+                    const block = document.getElementById("codeBlock");
+                    block.style.display = block.style.display === "block" ? "none" : "block";
+                    //     alert("showCode"); 
+                });
+            }
+
+            function pressingDown(e) {
+                //    alert("YES klik"); 
+                eiScale();
+                geboren = false;
+                maakTekst("");
+            }
+        }
     </script>
+</code>
+</pre>
+
 </body>
 
 </html>
