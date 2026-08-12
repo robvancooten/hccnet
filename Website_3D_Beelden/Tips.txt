@@ -9,6 +9,7 @@ Verwijder Adobe extension uit Browser. Anders error open before closing.
 
 import { color, fog, float, positionWorld, triNoise3D, positionView, normalWorld, uniform } from 'three/tsl';
 
+jquery-latest.min.js geeft NIET de nieuwste. 
 
 let container;  
 maakScene()

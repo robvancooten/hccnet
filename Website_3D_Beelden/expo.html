@@ -32,9 +32,7 @@
 		}
 	</style>
 	<!-- voor hiding en showing nav knoppen:   -->
-	<!-- 		<script src="https://code.jquery.com/jquery-latest.min.js"></script>    -->
 	<script src="./build/jquery.js"></script>
-</head>
 
 <body>
 	<div id="menu">
@@ -224,8 +222,8 @@
 				// called when loading has errors
 				function (error) {
 					console.log('O, 0 An error happened during loading');
-                    if (location.hostname == "localhost")
-                        alert("'O, 0 An error happened during loading" + error);					
+					if (location.hostname == "localhost")
+						alert("'O, 0 An error happened during loading" + error);
 
 				}
 			);    // einde loader
