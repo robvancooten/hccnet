@@ -31,18 +31,31 @@ function leesMenuTekst() {
         extralink2 = witregel;
     };
 
-    if (menu_keuze == 5) {
+    if (menu_keuze == 6) {
+        menu_tekst = '<ul>' +
+            '<li><a href=' + pad + 'spiegel.html?menu_keuze=6&link_nummer=0   title="Mirror with reflections.">Mirror</a></li>' +
+            '<li><a href=' + pad + 'chrome.html?menu_keuze=6&link_nummer=1   title="Chroom look head..">Chrome</a></li>' +
+
+            witregel +
+            '<li><a href=' + pad + 'fps.html?menu_keuze=5&link_nummer=0        title="Walking along ceramic heads...">back5</a></li>' +
+
+            '<li style="float:right"><a href=' + pad + 'howto.html?menu_keuze=4&link_nummer=2  title="The Making Of.">HOWTO</a></li>' +
+            '<li style="float:right"><a href="https://robvancooten.github.io/hccnet/" title="Website van Rob van Cooten.">Home</a></li>' +
+            ' </ul>';
+    }
+
+    else if (menu_keuze == 5) {
         menu_tekst = '<ul>' +
             '<li><a href=' + pad + 'fps.html?menu_keuze=5&link_nummer=0           title="Walking along ceramic heads..">FPS</a></li>' +
-            '<li><a href=' + pad + 'spiegel.html?menu_keuze=5&link_nummer=1   title="Mirror with reflections.">Mirror</a></li>' +
-            '<li><a href=' + pad + 'circel.html?menu_keuze=5&link_nummer=2   title="Running text along a circel.">Circel</a></li>' +
-            '<li><a href=' + pad + 'toren.html?menu_keuze=5&link_nummer=3   title="Tower of Babilon.">Tower</a></li>' +
-            '<li><a href=' + pad + 'birds.html?menu_keuze=5&link_nummer=4   title="4 Birds hiding and showing.">Birds</a></li>' +
-            '<li><a href=' + pad + 'train.html?menu_keuze=5&link_nummer=5   title="Heads moving along a line.">Train</a></li>' +
+            '<li><a href=' + pad + 'circel.html?menu_keuze=5&link_nummer=1   title="Running text along a circel.">Circel</a></li>' +
+            '<li><a href=' + pad + 'toren.html?menu_keuze=5&link_nummer=2   title="Tower of Babilon.">Tower</a></li>' +
+            '<li><a href=' + pad + 'birds.html?menu_keuze=5&link_nummer=3   title="4 Birds hiding and showing.">Birds</a></li>' +
+            '<li><a href=' + pad + 'train.html?menu_keuze=5&link_nummer=4   title="Heads moving along a line.">Train</a></li>' +
             witregel +
-            '<li><a href=' + pad + 'flyer.html?menu_keuze=3&link_nummer=0        title="Expositie wordt opgebouwd via parachute.">back4</a></li>' +
+            '<li><a href=' + pad + 'flyer.html?menu_keuze=4&link_nummer=0        title="Expositie wordt opgebouwd via parachute.">back4</a></li>' +
+         '<li><a href=' + pad + 'spiegel.html?menu_keuze=6&link_nummer=0  title="Spiegelende ruimte."> MORE6 </a></li>' +            
 
-            '<li style="float:right"><a href=' + pad + 'howto.html?menu_keuze=4&link_nummer=7  title="The Making Of.">HOWTO</a></li>' +
+            '<li style="float:right"><a href=' + pad + 'howto.html?menu_keuze=4&link_nummer=5  title="The Making Of.">HOWTO</a></li>' +
             '<li style="float:right"><a href="https://robvancooten.github.io/hccnet/" title="Website van Rob van Cooten.">Home</a></li>' +
             ' </ul>';
     }
