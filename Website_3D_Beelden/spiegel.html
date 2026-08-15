@@ -2,10 +2,13 @@
 <html lang="en">
 
 <head>
-    <title>three.js - mirror</title>
+    <title>Head in mirroring Cube </title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <!-- 	<link type="text/css" rel="stylesheet" href="example.css">   -->
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <!--   http://localhost/www/hccnet/Website_3D_Beelden/spiegel.html   -->
+    <meta name="keywords" content="3D models, Threejs, Ceramics">
+    <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
     <link type="text/css" rel="stylesheet" href="css/main.css">
     <link type="text/css" rel="stylesheet" href="css/menu.css">
 </head>
@@ -32,7 +35,8 @@
         import { reflector, uv, texture, color } from 'three/tsl';
         import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { Inspector } from 'three/addons/inspector/Inspector.js';
+        //  import { Inspector } from 'three/addons/inspector/Inspector.js';
+        import Stats from './jsm/libs/stats.module.js';
         import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
 
         let camera, scene, renderer;
@@ -43,14 +47,16 @@
         let sphereGroup;
         let kop, clone, groep;
         let breedte = 100.1;
-        let richting=1; 
+        let richting = 1;
+        
+        const stats = new Stats();
 
         init();
 
         function init() {
             maakMenu();
             maakScene();
-            // maakVormen(); 
+            maakVormen();
             maakKubus();
             laadModel();
 
@@ -60,11 +66,11 @@
 
             window.addEventListener('resize', onWindowResize);
 
- 			document.body.addEventListener("pointerdown", beweegReverse, false);
+            document.body.addEventListener("pointerdown", beweegReverse, false);
             function beweegReverse() {
-                richting = -1*richting ;
-              //  alert(); 
-            }            
+                richting = -1 * richting;
+                //  alert(); 
+            }
         }   // einde init
 
         function onWindowResize() {
@@ -82,6 +88,7 @@
                 groep.rotation.y += 0.02 * richting;
 
             renderer.render(scene, camera);
+            stats.update();
         }
 
         function startOrbitController() {
@@ -98,15 +105,21 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setAnimationLoop(animate);
-            if (location.hostname == "localhost"){
-                   renderer.inspector = new Inspector();
+            if (location.hostname == "localhost") {
+                document.body.appendChild(stats.dom);
+                //  alert(stats.dom); 
+                stats.dom.style.position = 'absolute';
+                stats.dom.style.top = '100px';
+                stats.dom.style.left = '200px';                               
+                //  renderer.inspector = new Inspector();
             }
 
             document.body.appendChild(renderer.domElement);
-            
-        //    let profiler = document.getElementById("profiler-shell") ;
-        //         alert("profiler: "  + profiler) ; 
-        }
+
+            //    let profiler = document.getElementById("profiler-shell") ;
+            //         alert("profiler: "  + profiler) ; 
+        }  // einde maakRenderer; 
+
         function maakScene() {
             // scene
             scene = new THREE.Scene();
@@ -119,9 +132,9 @@
         function maakBelichting() {
             // lights
             // new THREE.PointLight(color, intensity, range 0 no limit, decay 0 no decay ); 
-            let intensiteit = 0.7 ;  // 0.5
+            let intensiteit = 0.7;  // 0.5
             // const mainLight = new THREE.PointLight(0xe7e7e7, 5 * intensiteit, 250, 0);
-            const mainLight = new THREE.PointLight(0xe7e7e7, 5 * intensiteit, 2*breedte, 0);            
+            const mainLight = new THREE.PointLight(0xe7e7e7, 5 * intensiteit, 2 * breedte, 0);
             mainLight.position.y = 60;
             scene.add(mainLight);
 
@@ -129,7 +142,7 @@
             const greenLight = new THREE.PointLight(0xff0033, intensiteit, 1000, 0);
             greenLight.position.set(550, 50, 0);
             //   scene.add(greenLight);
-            
+
             // const redLight = new THREE.PointLight(0xff0000, 0.5, 1000, 0);
             const redLight = new THREE.PointLight(0x00ff00, intensiteit, 1000, 0);
             redLight.position.set(- 550, 50, 0);
@@ -201,7 +214,7 @@
             // walls
 
             const planeGeo = new THREE.PlaneGeometry(breedte, breedte);
-            const boxGeo = new THREE.BoxGeometry(breedte, breedte, 5 ) ; 
+            const boxGeo = new THREE.BoxGeometry(breedte, breedte, 5);
             //
             const planeBottom = new THREE.Mesh(boxGeo, new THREE.MeshPhongNodeMaterial({
                 colorNode: groundNode
