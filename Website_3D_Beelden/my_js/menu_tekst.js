@@ -35,12 +35,11 @@ function leesMenuTekst() {
         menu_tekst = '<ul>' +
             '<li><a href=' + pad + 'spiegel.html?menu_keuze=6&link_nummer=0   title="Mirror with reflections.">Mirror</a></li>' +
             '<li><a href=' + pad + 'chrome.html?menu_keuze=6&link_nummer=1   title="Chroom look head..">Chrome</a></li>' +
-
             witregel +
             '<li><a href=' + pad + 'fps.html?menu_keuze=5&link_nummer=0        title="Walking along ceramic heads...">back5</a></li>' +
-
-            '<li style="float:right"><a href=' + pad + 'howto.html?menu_keuze=4&link_nummer=2  title="The Making Of.">HOWTO</a></li>' +
+            witregel +            
             '<li style="float:right"><a href="https://robvancooten.github.io/hccnet/" title="Website van Rob van Cooten.">Home</a></li>' +
+         '<li><a href=' + pad + 'howto.html?menu_keuze=6&link_nummer=4  title="The Making Of.">HOWTO</a></li>' +            
             ' </ul>';
     }
 
@@ -73,7 +72,7 @@ function leesMenuTekst() {
             '<li><a href=' + pad + 'sprites.html?menu_keuze=3&link_nummer=0  title="sprites koppen."> back3 </a></li>' +
             '<li><a href=' + pad + 'fps.html?menu_keuze=5&link_nummer=0  title="Walking along ceramic heads."> MORE5 </a></li>' +
 
-            '<li style="float:right"><a href=' + pad + 'howto.html?menu_keuze=4&link_nummer=7  title="The Making Of.">HOWTO</a></li>' +
+            '<li style="float:right"><a href=' + pad + 'howto.html?menu_keuze=4&link_nummer=9  title="The Making Of.">HOWTO</a></li>' +
             '<li style="float:right"><a href="https://robvancooten.github.io/hccnet/" title="Website van Rob van Cooten.">Home</a></li>' +
             ' </ul>';
     }
