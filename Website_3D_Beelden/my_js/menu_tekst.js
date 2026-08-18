@@ -1,9 +1,8 @@
 // export 
 function leesMenuTekst() {
     let pad = "";
-    let extralink = "";
-    let extralink2 = "";
     let menu_tekst = "";
+
     let x = location.hostname;
     if (x == "localhost")
         pad = "http://localhost/www/hccnet/Website_3D_Beelden/"
@@ -17,29 +16,19 @@ function leesMenuTekst() {
     const link_nummer = urlParams.get('link_nummer');
     if (menu_keuze == null)
         menu_keuze = 0;
-    //   alert("menu keuze: " + menu_keuze);
 
     const witregel = '<li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  </li>';
-    if (x == "localhost") {
-        extralink = '<li><a href= ' + pad + 'all.html?menu_keuze=4&link_nummer=4 ' +
-            'title="Alle keramieke koppen van marjan.">ALL</a></li>';
-        extralink2 = '<li><a href= ' + pad + 'index.html?menu_keuze=4&link_nummer=3 ' +
-            'title="meerdere keramieke koppen van marjan.">nav-kop</a></li>';
-    }
-    else {
-        extralink = witregel;
-        extralink2 = witregel;
-    };
 
     if (menu_keuze == 6) {
         menu_tekst = '<ul>' +
-            '<li><a href=' + pad + 'spiegel.html?menu_keuze=6&link_nummer=0   title="Mirror with reflections.">Mirror</a></li>' +
+            '<li><a href=' + pad + 'spiegel.html?menu_keuze=6&link_nummer=0   title="Mirror with reflections.">Mirror</a></li>' +        
             '<li><a href=' + pad + 'chrome.html?menu_keuze=6&link_nummer=1   title="Chroom look head..">Chrome</a></li>' +
             witregel +
             '<li><a href=' + pad + 'fps.html?menu_keuze=5&link_nummer=0        title="Walking along ceramic heads...">back5</a></li>' +
             witregel +            
+         '<li><a href=' + pad + 'howto.html?menu_keuze=6&link_nummer=4  title="The Making Of.">HOWTO</a></li>' +    
             '<li style="float:right"><a href="https://robvancooten.github.io/hccnet/" title="Website van Rob van Cooten.">Home</a></li>' +
-         '<li><a href=' + pad + 'howto.html?menu_keuze=6&link_nummer=4  title="The Making Of.">HOWTO</a></li>' +            
+        
             ' </ul>';
     }
 
