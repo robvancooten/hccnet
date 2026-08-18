@@ -2,15 +2,15 @@
 <html lang="en">
 
 <head>
-    <title>Playing with shadows.</title>
+    <title>Playing with color, chrome plating.</title>
     <meta charset="utf-8">
     <!-- 
         <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
         -->
     <!-- <meta http-equiv="refresh" content="5">    -->
     <meta name="author" content=" Rob van Cooten. Waalre. ">
-    <meta name="keywords" content="3D models, Threejs, Ceramics, shadows">
-    <!--  https://sourceforge.net/projects/three-js.mirror/  -->
+    <meta name="keywords" content="3D models, Threejs, Ceramics, chrome plating">
+    <!--  https://sourceforge.net/projects/three-js/  -->
     <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
     <link type="text/css" rel="stylesheet" href="css/main.css">
     <link type="text/css" rel="stylesheet" href="css/menu.css">
@@ -47,6 +47,7 @@
         import Stats from './jsm/libs/stats.module.js';
 
         let camera, scene, renderer;
+        let kop, clone, groep;
         let controls;   // touch orbit mouse controls      
         const stats = new Stats();
 
@@ -68,9 +69,9 @@
 
         let envMap;
 
-        let kop;
         let breedte = 2 * 256; // 512;
         let r = +1;
+        let richting = 1;
 
         const clock = new THREE.Clock();
         let showCPU = false;
@@ -86,16 +87,21 @@
 
             maakPointLights();
             maakEnvMap();
-        //    maakSceneEnv() ;
-        //    maakKubus();
+            //    maakSceneEnv() ;
+            //    maakKubus();
             maakTekst();
 
             laadModel();
             maakRenderer();
 
-            window.addEventListener('resize', onWindowResize);
             startOrbitController();
             controls.update();
+
+            window.addEventListener('resize', onWindowResize);
+            document.body.addEventListener("pointerdown", beweegReverse, false);
+            function beweegReverse() {
+                richting = -1 * richting;
+            }            
 
         }    // einde init
         /*************************************************************************/
@@ -138,9 +144,6 @@
         function animate() {
             requestAnimationFrame(animate);
             lightHolder.quaternion.copy(camera.quaternion);
-            if (kop != null) {
-                ;  //     kop.quaternion.copy(camera.quaternion);
-            }
 
             controls.update();
             render();
@@ -148,6 +151,7 @@
 
         function render() {
             stats.update();
+
             teller = teller + 0.005;  //  = Date.now() * 0.0005;
             if (teller > 1000)
                 teller = 0;
@@ -166,9 +170,9 @@
         }  // einde render 
 
         function roteerKop() {
-            if (kop != null) {
-                kop.rotation.z = -controls.getAzimuthalAngle();
-            }
+            if (kop != null && clone != null)
+                controls.autoRotateSpeed = -controls.autoRotateSpeed ;  // 4 * richting;  
+               //  groep.rotation.y = -controls.getAzimuthalAngle() * richting;                  ;  // * richting;                
         }
 
         function beweegBollen() {
@@ -245,8 +249,8 @@
 
             controls.target.set(0, 0, 18);
 
-            controls.autoRotate = true;
-            controls.autoRotateSpeed = 4;   // 2 is default. 
+           controls.autoRotate = true;
+            controls.autoRotateSpeed = 4 * richting;   // 2 is default. 
 
             controls.update();
         }   // einde startOrbitControls.
@@ -271,12 +275,27 @@
                 //   kop.rotation.x = 1.2 * Math.PI;  // werkt niet...
 
                 kop.material = new THREE.MeshStandardMaterial({
-                    metalness: 1 ,  // 0.97,
+                    metalness: 1,  // 0.97,
                     roughness: 0.0,
                     envMap: envMap
                 });
 
                 scene.add(kop);
+
+                clone = kop.clone();
+                clone.scale.x = 1;
+                clone.rotation.z = Math.PI;
+
+                //    clone.position.z = 0.03;
+
+                groep = new THREE.Group();
+                groep.add(clone);
+                groep.add(kop);
+                //    groep.position.y = + 20;
+                //   scene.add(kop);
+                scene.add(groep);
+
+                //   scene.add(kop);
             },
                 // called while loading is progressing
                 function (xhr) {
@@ -411,12 +430,12 @@
 
         }
 
-function maakSceneEnv(){
-    
-			scene.background = envMap;
-			scene.environment = envMap; // important for PBR materials
-			scene.backgroundIntensity = 0.1;
-}
+        function maakSceneEnv() {
+
+            scene.background = envMap;
+            scene.environment = envMap; // important for PBR materials
+            scene.backgroundIntensity = 0.1;
+        }
 
         function maakKubus() {
             let dir = "./images/koppen_ani/";
@@ -445,7 +464,7 @@ function maakSceneEnv(){
 
             loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
 
-                const textGeo = new TextGeometry('Mirror material on head.', {
+                const textGeo = new TextGeometry('Chrome plating material on head.', {
                     font: font,
                     size: 8,
                     height: 5,
