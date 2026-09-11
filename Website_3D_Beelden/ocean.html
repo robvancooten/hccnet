@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>A sinking head.</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D models, Threejs, Ceramics">
+    <!--  https://sourceforge.net/projects/three-js.mirror/  -->
+    <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link href="css/menu.css" rel="stylesheet" type="text/css">
+
+    <style>
+        body {
+            /*  cursor:none;    */
+            pointer-events: auto;
+            cursor: url(./images/shark.cur), auto;
+        }
+
+        #container {
+            width: 100%;
+            height: 100%;
+        }
+
+        #dagNacht {
+            position: absolute;
+            top: 70%;
+            left: 10%;
+            padding: 1vw 0;
+            margin: 0;
+            width: 6vw;
+            text-align: center;
+            font-size: 1.0vw;
+            border-radius: 50%;
+            background-color: rgb(10, 163, 214);
+            border: 0.5vw solid darkblue;
+        }
+
+        #dagNacht:hover {
+            cursor: pointer;
+        }
+
+        .unselectable {
+            /* speciaal voor touch devices */
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            /* Safari */
+            -webkit-user-select: none;
+            /* Chrome */
+            -moz-user-select: none;
+            /* Firefox */
+            -ms-user-select: none;
+            /* Internet Explorer/Edge */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="menu">
+        <!-- tekst dynamisch-->
+    </div>
+    <div id="dagNacht" title="Day or Night" class="unselectable">
+        <!-- gele zon: &#x2B50;  zwarte zon &#9788;  -->
+        <p> &#x2B50; &#9789; </p>
+    </div>
+
+    <!-- Import maps polyfill -->
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+				}
+			}
+		</script>
+
+    <script type="module">
+        import { leesMenuTekst, kleurActiveLink } from './my_js/menu_tekst.js';
+        import * as THREE from 'three';
+
+        import { GUI } from './jsm/libs/lil-gui.module.min.js';
+
+        import { OBJLoader } from './jsm/loaders/OBJLoader.js';
+        import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+        import { Water } from './jsm/objects/Water.js';
+        import { Sky } from './jsm/objects/Sky.js';
+
+
+        import { FontLoader } from './jsm/loaders/FontLoader.js';
+        import { TextGeometry } from './jsm/geometries/TextGeometry.js';
+
+
+        let container, menu;
+
+        //    let camera, scene, renderer;
+        let camera, cameraOrtho, scene, renderer;
+
+        //    let mouseX = 0, mouseY = 0;
+        let posX = 500, posY = 200, posZ = 0;
+        const shiftY = 10;
+
+        let insetWidth, insetHeight;
+
+        let kop, boei;
+        let drone, shark;
+        const sharks = [];
+        const wings = [];
+
+        let bol, groep;
+
+        let controls, water, sun;
+        let skyUniforms, parameters, sky, pmremGenerator;
+        let dimRichting = + 1;
+        let dimmenAan = false;
+        let teller = 0;
+        let fogwaarde = 0;
+        let terug = false;
+        let heen = false;
+        let stijgenboei = false;
+        let dalenboei = false;
+        let dompelkop = true;
+
+        let spotLightBoeiHelper, spotLightKopHelper, spotLightBoei, spotLightKop;
+        let spotLightTouw, spotLightTouwHelper;
+
+        let textMesh;   // moet globaal 
+        let tekstaan = false;
+
+        let r = +1; let rh = +1;
+        let deltaX, deltaY, deltaZ;
+        let speed = 100;
+
+        init();
+        animate();
+
+        function init() {
+            maakMenu();
+            maakScene();
+
+            maakBelichting();
+            spotLampen();
+            maakMist();
+            function maakMist() {
+                // new Fog( color : number | Color, near : number, far : number )
+                //  scene.fog = new THREE.Fog( 0xffffff, 1, 15 );
+                //new FogExp2( color : number | Color, density : number ) 
+                scene.fog = new THREE.FogExp2(0xcccccc, 0.001);   //  0.002  groter dichter.
+            }
+            maakRenderer();
+            laadKop();
+            laadDrone();
+            laadShark();
+            maakBoei();
+
+            maakWater();
+            maakSkyBox();
+            updateSun();
+
+            /***************     GUI, staat uit: ***********************************/
+            maakGUI();
+
+            startOrbitController();
+            window.addEventListener('resize', onWindowResize);
+            onWindowResize();
+        }    // einde init;    
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            insetWidth = window.innerHeight / 8;
+            insetHeight = window.innerHeight / 8;
+
+            cameraOrtho.aspect = insetWidth / insetHeight;
+            cameraOrtho.updateProjectionMatrix();
+        }
+
+        function animate() {
+            //  hoofdcamera: 
+            renderer.setClearColor(0x0000ff);
+            renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+            renderer.render(scene, camera);
+
+            // second camera: 
+            //  renderer.setClearColor(0xff7777);
+            renderer.setClearColor(0x777777);
+            renderer.clearDepth();
+            renderer.setScissorTest(true);
+            // x, y, width en height 2e camera:    
+            renderer.setScissor(0, window.innerHeight - insetHeight, insetWidth, insetHeight);
+            renderer.setViewport(0, window.innerHeight - insetHeight, insetWidth, insetHeight);
+
+            renderer.render(scene, cameraOrtho);
+
+            renderer.setScissorTest(false);
+
+            requestAnimationFrame(animate);
+            render();
+        }
+
+        function render() {
+            const time = performance.now() * 0.001;
+            water.material.uniforms['time'].value += 1.0 / 60.0;
+
+            //  console.log("time: " + time); 
+
+            //    scene.fog = new THREE.FogExp2( 0xcccccc, 0.0001*time ); 
+
+            if (groep != null) {
+                groep.rotation.y += 0.01;
+                //   console.log("hoek: " + groep.rotation.y) ; 
+                let hoogte = 5 * Math.sin(groep.rotation.y) - 10;   // -10 onderwater.
+                //   console.log("hoogte: " + hoogte); 
+                groep.position.y = hoogte;
+            }
+
+            if (shark != null)
+                beweegShark();
+
+            maakMist();
+            function maakMist() {
+                fogwaarde++;
+                console.log("fogwaarde: " + fogwaarde); 
+                scene.fog = new THREE.FogExp2(0xcccccc, 0.00001 * fogwaarde);  // 0.0001 
+                if (fogwaarde==100)
+                   fogwaarde=-100; 
+            }
+
+            roteerWings();
+            wiebelBoei();
+            roteerKop();
+
+            if (kop != null && drone != null) {
+                if (dompelkop)
+                    dompelKop();
+
+                verplaatsBoei();
+
+                drone.position.x = boei.position.x;
+
+                spotLightVolg();
+
+                if (dimmenAan)
+                    dimmen(+1);
+                else
+                    dimmen(-1);
+
+            }
+
+        }  // einde render()
+
+        function verplaatsBoei() {
+
+            if (dalenboei)
+                dalenBoei();
+
+            if (stijgenboei)
+                stijgenBoei();
+
+            // console.log(kop.position.y);
+            if (heen)
+                heenWeg();
+            if (terug)
+                terugWeg();
+        }
+
+        function dalenBoei() {
+            //  console.log(" dalenboei boei " ) ; 
+            if (boei.position.y > 0)
+                boei.position.y -= 10;
+            else
+                dalenboei = false;
+        }  // einde dalenBoei
+
+        function stijgenBoei() {
+            if (boei.position.y < (posY - shiftY)) {
+                boei.position.y += 1;
+                //    kop.position.y = boei.position.y
+                //     kop.position.x = drone.position.x  ; 
+            }
+            else
+                stijgenboei = false;
+        }
+        function heenWeg() {
+            if (!tekstaan) {
+                maakTekst("HELP");
+                tekstaan = !tekstaan;
+            }
+
+            stijgenboei = false;
+            deltaX = Math.abs(kop.position.x - boei.position.x);
+            boei.position.x = boei.position.x - deltaX / speed;
+            //    deltaY = Math.abs(kop.position.y - boei.position.y);
+            //    boei.position.y = boei.position.y - deltaY / speed;
+            //  console.log("heenWeg, deltaX: " + deltaX); 
+
+            if (Math.abs(deltaX) < 0.2) {
+                heen = false;
+                //  alert("Heen klaar");
+                terug = true;
+                //  stijgenboei = false; 
+                //  console.log("OK, klaar heenWeg");
+                dompelkop = false;
+            }
+        }   // einde heenWeg 
+
+        function terugWeg() {
+            //  console.log("TerugWeg"); 
+            if (tekstaan) {
+                maakTekst("");
+                tekstaan = !tekstaan;
+            }
+            //    console.log("Tekst overschreven");
+            stijgenboei = true;
+            deltaX = posX - boei.position.x;
+            boei.position.x = boei.position.x + 1 * deltaX / speed;
+            kop.position.x = boei.position.x;
+            kop.position.y = boei.position.y;
+
+            if (Math.abs(deltaX) < 0.4) {
+                kop.position.x = 0;
+                kop.position.y = 10;
+            }
+            if (Math.abs(deltaX) < 0.2) {
+                terug = false;
+                heen = true;
+                //  alert("Klaar"); 
+                //   console.log("OK, klaar terugWeg");
+
+                stijgenboei = true;
+                dompelkop = true;
+            }
+        }   // einde terugWeg 
+
+
+        function maakBoei() {
+            let geometry = new THREE.TorusGeometry(10, 3, 16, 100);
+            const texture = new THREE.TextureLoader().load('images/boei.png');
+            let material = new THREE.MeshPhongMaterial({ map: texture, color: 0xaa9999 });
+
+            /*
+            material = new THREE.MeshPhongMaterial({
+                      map: texture,
+                      color: 0xf0c0c0,
+                      shininess: 150,
+                    //  side: THREE.DoubleSide,
+                      //  metalness: 0.5,
+                    //  emissive: 'darkred',    // red, green 
+                   //   specular: 0xff0000,
+                  });      */
+
+            boei = new THREE.Mesh(geometry, material);
+            boei.position.x = posX;
+            boei.position.y = posY - shiftY;
+            boei.rotation.x = Math.PI / 2;
+            boei.rotation.y = Math.PI / 40;
+            boei.rotation.z = Math.PI / 4;
+            scene.add(boei);
+
+        }
+        function maakBelichting() {
+            const ambientLight = new THREE.AmbientLight(0xcccccc, 0.4);
+            //   scene.add(ambientLight);
+
+            // op de kop:
+            const pointLight = new THREE.PointLight(0xffffff, 0.8);
+            //    camera.add(pointLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
+            directionalLight.position.set(100, 100, 100)
+            scene.add(directionalLight);
+        }
+        function startOrbitController() {
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.addEventListener('change', render);
+            controls.listenToKeyEvents(window);    // pijltjes toetsen.                
+
+            controls.minPolarAngle = -Math.PI * 0.3;     // tilt. , x as.            
+            controls.maxPolarAngle = Math.PI * 0.5;   // + meer zon. 
+
+            controls.minAzimuthAngle = -Math.PI * 0.25;      // rot y as.
+            controls.maxAzimuthAngle = Math.PI * 0.55;
+
+            controls.target.set(0, 10, 0);
+            controls.minDistance = 40.0;
+            controls.maxDistance = 1000.0;
+            controls.update();
+        }
+        function dimmen(teken) {
+            dimRichting = teken;
+            let mie = skyUniforms['mieCoefficient'].value;
+
+            // licht  0.005
+            if ((mie > 0.005 && dimRichting == -1) || (mie < 0.06 && dimRichting == +1))
+                skyUniforms['mieCoefficient'].value += dimRichting * 0.001;
+
+            //  console.log("dimRichting: " + dimRichting + " mie: " + mie);
+        }
+        function spotLampen() {
+            /*       SPOTLIGHT:    */
+            // SpotLight( color : Integer, intensity : Float, distance : Float, angle : Radians, penumbra : Float, decay : Float )
+            let intens = 20;   // 0 - 500 
+            let hoogte = posY;
+            spotLightBoei = new THREE.SpotLight(0xff0000, intens * 20, hoogte * 1.1, Math.PI * 0.01, 1);
+            spotLightBoei.position.set(0, posY, 0);
+            spotLightBoei.angle = 0.02 * Math.PI;  //  radius / afstand;
+            spotLightBoei.distance = hoogte * 1.1;
+            spotLightBoei.decay = 0;
+            scene.add(spotLightBoei);
+
+            spotLightBoeiHelper = new THREE.SpotLightHelper(spotLightBoei);
+            scene.add(spotLightBoeiHelper);
+            spotLightBoeiHelper.visible = true;  // false;
+
+            spotLightKop = new THREE.SpotLight(0xffffff, intens, hoogte * 1.1, Math.PI * 0.01, 1);
+            spotLightKop.position.set(0, hoogte, 0);
+            spotLightKop.angle = 5 / hoogte;  //  0.02 * Math.PI;  //  radius / afstand;
+            spotLightKop.distance = hoogte * 1.1;
+            spotLightKop.decay = 0;
+            scene.add(spotLightKop);
+
+            spotLightKopHelper = new THREE.SpotLightHelper(spotLightKop);
+            scene.add(spotLightKopHelper);
+            spotLightKopHelper.visible = true;  // false;
+
+            spotLightTouw = new THREE.SpotLight(0xcccccc, intens / 10, hoogte * 1.1, Math.PI * 0.01, 1);
+            spotLightTouw.position.set(posX, posY, 0);
+            spotLightTouw.angle = 0.002 / hoogte;  //  0.02 * Math.PI;  //  radius / afstand;
+            spotLightTouw.distance = shiftY; //  hoogte * 1.1;
+            spotLightTouw.decay = 0;
+            scene.add(spotLightTouw);
+
+            spotLightTouwHelper = new THREE.SpotLightHelper(spotLightTouw, 0xFF0000);
+            // spotLightTouwHelper.setColors( 0, 0, 0);
+            scene.add(spotLightTouwHelper);
+            spotLightTouwHelper.visible = true;
+        }
+
+        function beweegShark() {
+            let speed = 0.5;
+            let s = 3;
+            if (heen) {
+                shark.position.x -= speed;
+                shark.scale.set(-s, s, s);
+            }
+            if (terug) {
+                shark.position.x += speed;
+                shark.scale.set(s, s, s);
+            }
+        }
+
+        function wiebelBoei() {
+            if (boei != null) {
+                teller++;
+                if (teller % 30 == 0) {
+                    boei.rotation.x = Math.PI / 2 - 0.1 * 2 + 0.1 * Math.PI * Math.random();
+                    boei.rotation.z = 0.05 * Math.PI * Math.random();
+                }
+            }
+        }
+        function roteerKop() {
+            if (kop != null) {
+                if (kop.rotation.z > 0.5)
+                    r = -1;
+                if (kop.rotation.z < -0.5)
+                    r = +1;
+
+                kop.rotation.z += 0.005 * r;
+            }
+        }
+
+        function dompelKop() {
+            if (kop.position.y > 20)
+                rh = -1;
+
+            if (kop.position.y < -20)
+                rh = +1;
+
+            if (kop.position.y < -4 && kop.position.y > -5) {
+                stijgenboei = false;
+                //  alert(" dalenboei " ); 
+                dalenboei = true;
+            }
+            if (kop.position.y < -5) {
+                terug = false;
+                heen = true;
+            }
+            if (kop.position.y > 15) {
+                //    terug = true;
+                //    heen = false;
+            }
+            /*
+                  if (kop.position.y > 10 && kop.position.y < posX) {
+                      stijgenboei = true;
+                      dalenboei = false;;
+                  }   */
+
+            let sp = 0.05;
+            kop.position.y += sp * rh;
+        }
+        function berekenAfstand(o1, o2) {
+            let a = (o1.position.x - o2.position.x);
+            let b = (o1.position.y - o2.position.y);
+            let c = (o1.position.z - o2.position.z);
+            let d = Math.sqrt(a * a + b * b + c * c);
+            return d;
+        }
+
+        function spotLightVolg() {
+            spotLightKop.target = kop;  // kop;                
+            spotLightBoei.target = boei;  // kop; 
+            spotLightTouw.target = boei;
+
+            // bron: 
+            spotLightBoei.position.x = boei.position.x;
+            spotLightKop.position.x = drone.position.x;
+            spotLightTouw.position.x = boei.position.x;
+            // target:    
+            spotLightKop.distance = berekenAfstand(spotLightKop, drone);
+            spotLightTouw.distance = berekenAfstand(spotLightTouw, boei);
+            spotLightBoei.distance = berekenAfstand(spotLightBoei, boei);
+
+            spotLightKopHelper.update();
+            spotLightBoeiHelper.update();
+            spotLightTouwHelper.update();
+        }
+
+        function pressingDagNachtDown() {
+            // alert(); 
+            dimmenAan = !dimmenAan;
+            // let dagNacht = document.getElementById("dagNacht");
+            if (dimmenAan) {
+                dagNacht.style.backgroundColor = "blue";
+                dagNacht.style.borderColor = "CornflowerBlue";
+                dagNacht.style.color = "yellow";
+                dagNacht.innerHTML = "<p> Night </p>";
+            }
+            else {
+                dagNacht.style.backgroundColor = "CornflowerBlue";  //  0x6495ED;
+                dagNacht.style.borderColor = "blue";
+                dagNacht.innerHTML = "<p> Day </p>";
+
+            }
+            if (dimmenAan == true) {
+                dimmen(+1);
+                spotLightBoeiHelper.visible = true;
+                spotLightKopHelper.visible = true;
+            }
+            else {
+                dimmen(-1);
+                spotLightBoeiHelper.visible = false;
+                spotLightKopHelper.visible = true;
+            }
+
+            //   console.log("dimmenAan: " + dimmenAan);
+        }
+
+        function maakWings() {
+            // wing1 = drone.getObjectByName('Wing1');			   
+            for (let k = 0; k < 4; k++) {
+                let w = "Wing" + (k + 1);
+                wings[k] = drone.getObjectByName(w);
+                // alert(wings[k]);
+            }
+        }
+
+        function maakPad() {
+            let pad;
+            if (location.hostname == "localhost")
+                pad = "./modellen/glb/"
+            else
+                pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+            // alert("pad " + pad); 
+            return pad;
+        }
+
+        function roteerWings() {
+            if (drone != null) {
+
+                if (wings[3] != null) {
+                    for (let k = 0; k < 4; k++)
+                        wings[k].rotation.z += 0.5;
+                }
+                //   drone.rotation.z += 0.5;
+            }
+        }
+        function laadKop() {
+            let pad = maakPad();
+
+
+            let model = pad + 'bladerKop.glb';
+            //  console.log("model: " + model)
+            const loader = new GLTFLoader();
+
+            loader.load(model, function (gltf) {
+                kop = gltf.scene.children[0];
+
+                kop.scale.multiplyScalar(1);  // 50 
+                //	kop.metalness = 0.0; // dir light werkt anders niet...?
+                // kop.texture.encoding = THREE.sRGBEncoding ; 
+
+                scene.add(kop);
+            },
+                // called while loading is progressing
+                function (xhr) {
+                    ;
+                    // 	console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                // called when loading has errors
+                function (error) {
+
+                    console.log('O, 0 An error happened during loading');
+
+                }
+            );    // einde loader
+        }   // einde laadKop
+
+        function laadDrone() {
+            let pad = maakPad();
+            let model = pad + 'drone_low.glb';
+
+            //  console.log("model: " + model)
+            const loader = new GLTFLoader();
+
+            loader.load(model, function (gltf) {
+                drone = gltf.scene.children[0];
+
+                drone.scale.multiplyScalar(0.2);  // 50 
+                drone.position.x = posX;
+                drone.position.y = posY;
+                scene.add(drone);
+                maakWings();
+                // alert(wings[0]);
+            },
+                // called while loading is progressing
+                function onProgress(xhr) {
+                    // console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                // called when loading has errors
+                function onError(error) {
+                    // alert("Load Error" + error) ;
+                    console.log('O, 0 An error happened during loading' + error);
+
+                },
+                // onLoad — A function to be called after the loading is successfully completed.					
+                function onLoad() {
+                    ; //  alert("loaded") ;  // werkt niet. 
+                }
+            );    // einde loader
+        }   // einde laadDrone
+
+        function laadShark() {
+            let pad = maakPad();
+            let model = pad + 'shark.glb';
+
+            //  console.log("model: " + model)
+            const loader = new GLTFLoader();
+
+            loader.load(model, function (gltf) {
+                shark = gltf.scene.children[0];
+
+                // shark.scale.multiplyScalar(3);  // 50 
+                let s = 3;
+                shark.scale.set(s, s, s);
+
+                maakClones();
+
+
+                shark.position.x = -200;
+                shark.position.y = 0;
+                // scene.add(shark);
+
+                // alert(wings[0]);
+            },
+                // called while loading is progressing
+                function onProgress(xhr) {
+                    // console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                // called when loading has errors
+                function onError(error) {
+                    // alert("Load Error" + error) ;
+                    console.log('O, 0 An error happened during loading' + error);
+
+                },
+                // onLoad — A function to be called after the loading is successfully completed.					
+                function onLoad() {
+                    ; //  alert("loaded") ;  // werkt niet. 
+                }
+            );    // einde loader
+        }   // einde laadDrone
+
+        function maakClones() {
+            sharks[0] = shark.clone();
+            sharks[1] = shark.clone();
+
+            sharks[0].position.x = -200;
+            sharks[0].rotation.z = - Math.PI / 4;
+            sharks[1].position.x = 200;
+            sharks[1].rotation.z = + Math.PI - Math.PI / 4;
+
+            groep = new THREE.Group; // groep bol en shark.                      
+            groep.add(sharks[0]);
+            groep.add(sharks[1]);
+            scene.add(groep);
+        }
+
+        function maakTekst(tekst) {
+            const radius = 20;
+
+            if (textMesh != null) {
+                scene.remove(textMesh);
+            }
+
+            const loader = new FontLoader();
+            let font = undefined,
+                fontName = 'optimer', // helvetiker, optimer, gentilis, droid sans, droid serif
+                fontWeight = 'bold'; // normal bold
+
+            loader.load('./fonts/helvetiker_regular.typeface.json', function (font) {
+                const textGeo = new TextGeometry(tekst, {
+                    font: font,
+                    size: 8,
+                    height: 5,
+                    curveSegments: 12
+                });
+
+                textGeo.computeBoundingBox();
+                const centerOffset = - 0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+
+                const materials = [
+                    new THREE.MeshBasicMaterial({ color: 0xff0000 }), // front
+                    new THREE.MeshBasicMaterial({ color: 0x550000 }) // side
+                ];
+
+                textMesh = new THREE.Mesh(textGeo, materials);
+                textMesh.scale.z = 0.1;
+
+                textMesh.position.x = -50;  // centerOffset;
+                textMesh.position.y = radius;
+                textMesh.position.z = 2 * radius;
+                textMesh.rotation.y = Math.PI * 2;
+
+                scene.add(textMesh);
+            });
+        }
+
+        function maakMenu() {
+            menu = document.getElementById("menu");
+            menu.innerHTML = leesMenuTekst() + "-Wait, Sinking Head-";
+
+            kleurActiveLink();
+
+            const dayNacht = document.getElementById("dagNacht");
+            dayNacht.addEventListener("pointerdown", pressingDagNachtDown, false);
+
+        }
+
+        function maakScene() {
+            container = document.createElement('div');
+            document.body.appendChild(container);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 10, 2000);
+            camera.position.z = +1000;   //  1000
+
+            // cameraOrtho = new THREE.OrthographicCamera(  -0.5, 0.5, 0.5, -0.5, 0.01, 10);
+            let frusWidth = 30;
+            cameraOrtho = new THREE.OrthographicCamera(-frusWidth, frusWidth, frusWidth, -frusWidth, 0.1, 2000);
+            camera.add(cameraOrtho);
+
+            // scene
+            scene = new THREE.Scene();
+            //   scene.background = new THREE.Color(0xaaccaa);            
+            scene.add(camera);
+        }
+
+        function maakWater() {
+
+            sun = new THREE.Vector3();
+
+            // Water
+
+            const waterGeometry = new THREE.PlaneGeometry(10 * 1000, 10 * 1000);
+
+            water = new Water(
+                waterGeometry,
+                {
+                    textureWidth: 512,
+                    textureHeight: 512,
+                    waterNormals: new THREE.TextureLoader().load('./images/waternormals.jpg', function (texture) {
+
+                        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+                    }),
+                    sunDirection: new THREE.Vector3(),
+                    sunColor: 0xffffff,      // 0xffffff,
+                    waterColor: 0x001e0f,
+                    distortionScale: 3,   //  3.7,
+                    fog: scene.fog !== undefined
+                }
+            );
+
+            water.rotation.x = - Math.PI / 2;
+
+            scene.add(water);
+        }
+
+        function maakSkyBox() {
+            // Skybox
+
+            sky = new Sky();
+            sky.scale.setScalar(1 * 1000);
+            scene.add(sky);
+
+            skyUniforms = sky.material.uniforms;
+
+            skyUniforms['turbidity'].value = 10  // 10;
+            skyUniforms['rayleigh'].value = 1.0  // 2;
+            skyUniforms['mieCoefficient'].value = 0.005;       // 0.005; licht. 
+            skyUniforms['mieDirectionalG'].value = 8;      //  0.8;
+
+            //     Azimuth -90 dan sun recht voorruit 
+            parameters = {
+                elevation: 5,  // 2,   tussen 0 en 5. 
+                azimuth: 180  //180 graden   
+            };
+            pmremGenerator = new THREE.PMREMGenerator(renderer);
+        }
+
+        function updateSun() {
+
+            const phi = THREE.MathUtils.degToRad(90 - parameters.elevation);
+            const theta = THREE.MathUtils.degToRad(parameters.azimuth);
+
+            sun.setFromSphericalCoords(1, phi, theta);
+
+            sky.material.uniforms['sunPosition'].value.copy(sun);
+            water.material.uniforms['sunDirection'].value.copy(sun).normalize();
+
+            scene.environment = pmremGenerator.fromScene(sky).texture;
+        }
+
+        function maakGUI() {
+            const gui = new GUI({ autoPlace: false });
+            const folderSky = gui.addFolder('Sky');
+
+            folderSky.add(parameters, 'elevation', 0, 90, 0.1).onChange(updateSun);
+            folderSky.add(parameters, 'azimuth', - 180, 180, 0.1).onChange(updateSun);
+            // folderSky.add(parameters, 'azimuth', - 90, 180, 0.1).onChange(updateSun);
+            folderSky.open();
+            //  folderSky.close();
+
+            const waterUniforms = water.material.uniforms;
+            const folderWater = gui.addFolder('Water');
+            folderWater.add(waterUniforms.distortionScale, 'value', 0, 8, 0.1).name('distortionScale');
+            folderWater.add(waterUniforms.size, 'value', 0.1, 10, 0.1).name('size');
+            // folderWater.open();
+            folderWater.close();
+        }  // einde GUI
+
+        function maakRenderer() {
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            container.appendChild(renderer.domElement);
+            //  document.body.appendChild(renderer.domElement);
+        }
+
+    </script>
+
+</body>
+
+</html>

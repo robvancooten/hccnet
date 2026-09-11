@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Animated head.</title>
+    <meta charset="utf-8">
+    <!--  
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        -->
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D models, Threejs, Ceramics">
+    <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link href="css/menu.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+    <div id="menu">
+        Hier komt het menu.
+    </div>
+
+    <!-- Import maps polyfill -->
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+				}
+			}
+		</script>
+
+    <script type="module">
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+        import * as THREE from 'three';
+        import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+        //   import { RGBELoader } from './jsm/loaders/RGBELoader.js';  // voor renderer    
+        //   import { RGBELoader } from './jsm/loaders/RGBELoader.js';  // voor renderer   
+        import { HDRLoader } from './jsm/loaders/HDRLoader.js';
+
+        let container;
+
+        let camera, scene, renderer;
+
+        let move = true;
+        let rot;
+        let controls;
+
+        let geinVogeltje, aniPop, hoofd;
+        let pad;
+        let pivot; // anipop vertices. 
+        const clones = [];
+
+        init();
+        animate();
+
+        function init() {
+            maakMenu();
+            maakScene();
+            maakBelichting();
+            //   model = leesModel();   // namen van modellen ophalen.
+            bepaalPAD();
+            laadAniPop();
+            laadMesh();
+
+            maakRenderer();
+            startOrbitController();
+            window.addEventListener('resize', onWindowResize);
+
+            container.addEventListener("pointerdown", pressingDown, false);
+            function pressingDown(e) {
+                move = !move;
+                controls.autoRotate = !controls.autoRotate;
+                // alert("move: " + move); 
+            }
+        }  // einde init.                 
+        //
+        function animate() {
+            requestAnimationFrame(animate);
+            rot = controls.getAzimuthalAngle();
+            //  console.log("azimuth: " + rot);
+            if (rot > Math.PI * 0.4 - 0.01)
+                controls.autoRotateSpeed = +5;
+            else if (rot < -Math.PI * 0.39)
+                controls.autoRotateSpeed = -5;
+            // controls.autoRotate = true;
+            controls.update();
+            render();
+        }
+
+        let r = +1;
+        let rotkop = +1;
+        function render() {
+            camera.lookAt(scene.position);
+
+            if (geinVogeltje != null) {
+                if (geinVogeltje.rotation.y > 0.5)
+                    r = -1;
+                if (geinVogeltje.rotation.y < -0.5)
+                    r = +1;
+                if (move) {
+                    geinVogeltje.rotation.y += 0.005 * r;
+                    geinVogeltje.position.x += 0.4 * r;
+                }
+            }
+
+            if (hoofd != null) {
+                if (hoofd.rotation.z < -0.15)
+                    rotkop = -1;
+                if (hoofd.rotation.z > 0.15)
+                    rotkop = +1;
+                if (!move)
+                    hoofd.rotation.z -= 0.02 * rotkop;
+            }
+            renderer.render(scene, camera);
+        }
+
+        function maakRenderer() {
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+        }
+
+        function kleurPop() {
+            aniPop.traverse((o) => {
+                if (o.isMesh) {
+                    o.material.emissive = new THREE.Color(0x333333);  //  werkt fijn bij metaal 1. 
+                    o.material.metalness = 0.2;  // 0..1 werkt goed bij 0.
+                }   // end isMesh
+            });    //  end traverse
+        }
+
+        function startOrbitController() {
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.addEventListener('change', render);
+            controls.listenToKeyEvents(window);    // pijltjes toetsen.            
+
+            controls.minPolarAngle = -Math.PI * 1.5;     // tilt. , x as.          
+            controls.maxPolarAngle = Math.PI * 0.5;
+
+            controls.minAzimuthAngle = -Math.PI * 0.4;      // rot y as.
+            controls.maxAzimuthAngle = Math.PI * 0.4;
+
+            controls.target.set(0, 10, 0);
+            controls.minDistance = 20.0;
+            controls.maxDistance = 200.0;
+
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = -5;   // 2 is default. 
+            controls.update();
+        }  // einde OrbitController
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function dumpObject(obj, lines = [], isLast = true, prefix = '') {
+            const localPrefix = isLast ? '└─' : '├─';
+            lines.push(`${prefix}${prefix ? localPrefix : ''}${obj.name || '*no-name*'} [${obj.type}]`);
+            const newPrefix = prefix + (isLast ? '  ' : '│ ');
+            const lastNdx = obj.children.length - 1;
+            obj.children.forEach((child, ndx) => {
+                const isLast = ndx === lastNdx;
+                dumpObject(child, lines, isLast, newPrefix);
+            });
+            return lines;
+        }
+
+        function maakVertices(kop) {
+            let clonesBox = [];
+            let group;
+
+            let boxje;    // vorm 
+            let kleur = 0x808000;     // 0x248983;  //  0x800080 ; paars
+            boxje = maakBoxje(kleur);
+
+            group = new THREE.Group();
+            group.scale.multiplyScalar(3);  // vergroting                 
+            //  scene.add(group);
+
+            let meshes = [];
+            kop.traverse(e => e.isMesh && meshes.push(e));
+
+            meshes.forEach(mesh => {
+                let g = mesh.geometry;
+                let points = g.attributes.position;
+                let colorAttr = mesh.geometry.getAttribute("color");
+                //	alert("Aantal attri: " + colorAttr) ; 
+
+                for (let i = 0; i < points.count; i++) {
+                    let x = points.getX(i);
+                    let y = points.getY(i);
+                    let z = points.getZ(i);
+                    // 	const r = points.colorAttr.getX( i ); 
+
+                    if (i % 10 == 0) {
+                        clonesBox[i] = boxje.clone();
+                        clonesBox[i].position.x = x;
+                        clonesBox[i].position.y = y;   // + 20;
+                        clonesBox[i].position.z = z;
+                        // console.log("aantal: "  + i );                             
+                        group.add(clonesBox[i]);
+                    }
+                }
+                //    let size = new THREE.Vector3();
+
+                //  const pivot = new Three.Group(); 
+                // group.rotation.x = Math.PI / 2;  
+                verPlaatsGroup(group);  // om pivot op nul te krijgen. 
+
+                pivot = new THREE.Object3D();
+                pivot.add(group);
+                pivot.position.y = 0;   // -15
+                pivot.position.z = 1.4;
+                scene.add(pivot); // NOTE Do not add model directly to the scene, just the pivot group model.position.set(0.0, -0.25, 0.0):
+            })
+            function maakBoxje(kl) {
+                let d = 0.1;
+                let geometryBox = new THREE.BoxGeometry(d, d, d);
+                let materialBox = new THREE.MeshBasicMaterial({ color: kl });
+                // materialBox = new THREE.MeshLambertMaterial({ color: 0x00ff00 });                
+                return boxje = new THREE.Mesh(geometryBox, materialBox);
+            }
+        }
+
+        function verPlaatsGroup(group) {
+            const box3 = new THREE.Box3();
+            box3.setFromObject(group);  // maakt boundaryBox. 
+            //    let size = box3.getSize(new THREE.Vector3());
+
+            let vector3 = new THREE.Vector3(0, 1, 0);
+            box3.getCenter(vector3);
+            //  console.log(vector3); 
+            group.rotation.x = Math.PI / 2;
+            group.translateX(-vector3.x);
+            group.translateY(-vector3.y);
+            group.translateZ(-vector3.z);
+        }
+
+        function maakBelichting() {
+
+            const alight = new THREE.AmbientLight(0x404040, 0.5); // soft white light, intensity
+            scene.add(alight);
+
+            const ambientLight = new THREE.AmbientLight(0xcccccc, 0.4);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0xffffff, 0.8);
+            camera.add(pointLight);
+            //   scene.add(camera);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 3.1);
+            directionalLight.position.set(-100, 100, 100)
+            scene.add(directionalLight);
+        }
+
+        function maakMenu() {
+            let menu = document.getElementById("menu");
+            if (isTouchDevice())
+                menu.innerHTML = leesMenuTekst() + "Clones heads. Use fingers to rotate or zoom. Touch to stop/run.";
+            else
+                menu.innerHTML = leesMenuTekst() + "Cloned heads. Use mouse/wheel to rotate or zoom. Press to stop/run.";
+
+            kleurActiveLink();
+        }
+        function maakScene() {
+            container = document.createElement('div');
+            document.body.appendChild(container);
+
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+            camera.position.z = 100;
+            // scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x005000);
+            //    scene.background = new THREE.Color('silver');
+        }
+        function bepaalPAD() {
+            let loc = location.hostname;
+            if (loc == "localhost")
+                pad = "./modellen/glb/"
+            else
+                pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+        }
+
+        function laadMesh() {
+            let geinVogel;
+            // model
+            const loader = new GLTFLoader().setPath(pad);
+            const model = 'geinVogel1';
+            loader.load(model + '.glb', function (gltf) {
+
+                gltf.scene.scale.set(0.4, 0.4, 0.4);
+                geinVogel = gltf.scene;
+
+                for (let k = 0; k < 10; k++) {
+                    clones[k] = geinVogel.clone();
+
+                    clones[k].position.x = 10 * k - 45;
+                    scene.add(clones[k]);
+                }
+                geinVogel.position.y = 0;    // - 95;
+                //  geinVogel.scale.x=5;
+                geinVogeltje = geinVogel.clone();
+                scene.add(geinVogeltje);
+            }
+            );
+        }   
+        
+            //model
+            function laadAniPop() {
+                // model
+                const modelAniPop = 'geinVogelAni';
+                const loader = new GLTFLoader().setPath(pad);
+                loader.load(modelAniPop + '.glb', function (gltf) {
+                    let s = 0.5;
+                    gltf.scene.scale.set(s, s, s);
+                    aniPop = gltf.scene;
+                    scene.add(aniPop);
+                    aniPop.position.z += 4
+                    aniPop.position.y += 7
+                    kleurPop();
+
+                    //  console.log(dumpObject(aniPop).join('\n'));
+                    hoofd = aniPop.getObjectByName('kop');
+                    // maakVertices(hoofd);
+                    maakVertices(aniPop);
+                });
+            }        
+    </script>
+
+</body>
+
+</html>

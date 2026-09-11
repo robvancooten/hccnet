@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Kop met meerdere kleuren.</title>
+    <meta charset="utf-8">
+    <!--  
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        -->
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D models, Threejs, Ceramics">
+    <!--  https://sourceforge.net/projects/three-js.mirror/  -->
+    <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="css/menu.css">
+
+    <script src="./build/jquery.js"></script>
+</head>
+
+<body>
+    <div id="menu">
+        Hier komt menu.
+    </div>
+
+    <!-- script async src="./my_js/modellen.js"></script>    -->
+
+    <!-- Import maps polyfill -->
+    <!-- Remove this when import maps will be widely supported   -->
+    <script async src="./build/es-module-shims.js"></script>
+
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+				}
+			}
+		</script>
+
+    <script type="module">
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+        import * as THREE from 'three';
+        import { OBJLoader } from './jsm/loaders/OBJLoader.js';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+
+        import { FontLoader } from './jsm/loaders/FontLoader.js';
+        import { TextGeometry } from './jsm/geometries/TextGeometry.js';
+
+        let container, menu;
+
+        let camera, scene, renderer;
+        let controls;   // touch mouse controls
+        let minmaxAngleY = Math.PI * 0.3;
+        let rot;  // rotatie camera. 
+        let rotSpeed = 5;
+
+        let windowHalfX = window.innerWidth / 2;
+        let windowHalfY = window.innerHeight / 2;
+
+
+        let pad = "./modellen/";
+
+        let koppen = [];
+        let kop;
+        let aantalKoppen = 12;
+        var modellen = new Array();
+        let textures = [], kleuren = [];
+        let pointLights = [], spotlight, helper;
+        let shiftY = 90, shiftZ = 100, intensity = 10;
+        let afstand = 100; let schaal = 2.0;
+        let nummer;
+        let modelNummer = 0;   //  0 of 1 
+
+        let INTERSECTED;
+        const pointer = new THREE.Vector2();
+        let raycaster;
+        let theta = 0;
+        const radius = 400;
+        let move = true;
+        let textMesh = null;
+
+
+        init();
+        animate();
+
+
+        function init() {
+
+            menu = document.getElementById("menu");
+            if (isTouchDevice())
+                menu.innerHTML = leesMenuTekst() + "Head with different textures. Use finger to rotate, double touche to stop/run.";
+            else
+                menu.innerHTML = leesMenuTekst() + "Head with textures.  Use mouse to rotate, double click to stop/run. Wheel to zoom.";
+
+            kleurActiveLink();
+            document.getElementsByTagName("body")[0].style.cursor = "url('images/biglips.cur'), move";
+
+            //   container = document.createElement('div');
+            //   document.body.appendChild(container);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10 * 1000);
+            // camera.position.z = 700;
+
+            // scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            scene.add(camera);
+
+            const ambientLight = new THREE.AmbientLight(0xcccccc, 0.1);  // 0.7 
+            scene.add(ambientLight);
+
+            const light = new THREE.DirectionalLight(0xffffff, 5.5);
+            light.position.set(1, 1, 1).normalize();
+            scene.add(light);
+
+
+            // SpotLight( color : Integer, intensity : Float, distance : Float, angle : Radians, penumbra : Float, decay : Float )
+            const color = 0xFFFFFF;
+            let intensity = 2;
+            const angle = Math.PI * 0.4;
+
+            spotlight = new THREE.SpotLight(color, intensity, 0, angle);
+            spotlight.position.x = 0;
+            spotlight.position.y = 150;
+            spotlight.position.z = 100;
+            // spotlight.color.setHex( 0xFF0000 );
+            scene.add(spotlight);
+            // scene.add(spotlight.target);
+
+
+            // kleuren voor standaards, pointlights en spotlight. 
+            kleuren[0] = 0xffffff;
+            kleuren[1] = 0xff0000;
+            kleuren[2] = 0x00ff00;
+            kleuren[3] = 0x0000ff;
+
+            //   leesModellen();                  
+            modellen[0] = pad + 'bladerKop/bladerKop';
+            modellen[1] = pad + 'geinVogel1/geinVogel1';	    // OK 
+            modellen[2] = pad + 'sloffie/sloffie';	       // OK
+            modellen[3] = pad + 'ladyHead/ladyHead';
+            // alert(" model: " + modellen[0]);   
+
+            // manager
+
+            function loadModel() {
+                for (let k = 0; k < aantalKoppen; k++) {
+                    nummer = k;
+                    koppen[nummer].traverse(function (child) {
+                        if (child.isMesh) {
+                            child.material.emissive = new THREE.Color(0x555555);  //  333333
+                            child.material.metalness = 0.0;  // 0..1 ;  1 is mat. 
+
+                            if (k < 8)
+                                child.material.map = textures[k];
+                            else {
+                                child.material.color.set(kleuren[k % 4]);    // same as CSS's #RRGGBB style
+                                // child.material.roughness = 1.0 ;    // 0..1
+                                //  child.material.metalness = 1.0 ;    // 0 stone  ..1 metal 
+                            }
+                        }
+                    });   // end traverse 
+
+                    // hoogte rij instellen: 
+                    let h = Math.floor(k / 4);
+                    //  alert(h);
+
+                    koppen[nummer].position.x = -2 * afstand + (k % 4) * afstand;
+                    koppen[nummer].position.y = +afstand - h * afstand;    // - 95;
+                    koppen[nummer].position.z = -0;
+                    koppen[nummer].scale.x = koppen[nummer].scale.y = koppen[nummer].scale.z = schaal;
+                    scene.add(koppen[nummer]);
+                }  // einde for 
+
+            }   // einde loadModel. 
+
+            const manager = new THREE.LoadingManager(loadModel);
+
+            // texture laden:
+            const textureLoader = new THREE.TextureLoader(manager);
+            for (let k = 0; k < 8; k++) {
+                textures[k] = textureLoader.load(modellen[modelNummer] + k + '.jpg');
+                //   console.log(modellen[0] + k + '.jpg');
+            }   // einde for 
+
+            // model
+            function onProgress(xhr) {
+
+                if (xhr.lengthComputable) {
+
+                    const percentComplete = xhr.loaded / xhr.total * 100;
+                    // if (percentComplete == 100)
+                    // console.log('model: ' + modellen[nummer] + " " + Math.round(percentComplete, 2) + '% downloaded');
+
+                }
+            }    // einde onProgress.
+
+            function onError() {
+                console.log('O o loadError. ')
+            }
+
+
+            const loader = new OBJLoader(manager);
+            for (let k = 0; k < aantalKoppen; k++) {
+                loader.load(modellen[modelNummer] + '.obj', function (obj) {
+                    kop = obj;
+                    //  kleurObject();
+                    koppen[k] = kop;
+                }, onProgress, onError);
+
+            }  // end for loop. 
+
+            myrenderer();
+            // renderer1();
+
+            document.addEventListener('mousemove', onPointerMove);
+            window.addEventListener('resize', onWindowResize);
+
+            raycaster = new THREE.Raycaster();
+
+            startController();
+
+            //   $("html").mousedown(function (event) {
+            $("html").dblclick(function () {
+                // alert("mouse down");
+                controls.autoRotate = !controls.autoRotate;
+                controls.enabled = !controls.enabled;
+                move = !move;
+                maakTekst("");
+                if (!move)
+                    maakTekst("Double click to run.");
+                else
+                    maakTekst("Double click to stop.");
+            });
+
+
+            function onPointerMove(event) {
+
+                pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+                pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+                // console.log("pointer.x: " + pointer.x ) ; 
+
+            }
+
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+        }   // einde init
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            rot = controls.getAzimuthalAngle();
+            if (rot >= minmaxAngleY - 0.001)
+                controls.autoRotateSpeed = +rotSpeed;  // -controls.autoRotateSpeed; 
+            else if (rot <= -minmaxAngleY + 0.001)
+                controls.autoRotateSpeed = -rotSpeed;
+
+            controls.update();
+
+            render();
+        }
+
+        function render() {
+
+            /*   camera.position.x = radius * Math.sin(THREE.MathUtils.degToRad(theta)); 
+               camera.position.y = radius * Math.sin(THREE.MathUtils.degToRad(theta));
+               camera.position.z = radius * Math.cos(THREE.MathUtils.degToRad(theta));    */
+
+            //  camera.position.z = 1000; 
+
+            //	camera.lookAt( scene.position );
+
+            camera.updateMatrixWorld();
+
+            // find intersections
+            //  if ( move == false)
+            if (!isTouchDevice())
+                findIntersections();
+            renderer.render(scene, camera);
+
+        }
+
+        function findIntersections() {
+            //  console.clear(); 
+            // console.log("find intersections"); 
+            raycaster.setFromCamera(pointer, camera);
+            //  raycaster.helper= true; 
+
+            // intersectObject op true zetten voor obj modellen: 
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            //  console.log("intersects.length: " + intersects.length);
+
+            if (intersects.length > 0) {
+
+                if (INTERSECTED != intersects[0].object) {
+                    INTERSECTED = intersects[0].object;
+
+                    schaal = 2.2;
+                    INTERSECTED.scale.set(schaal, schaal, schaal);
+                    //  INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+                    //  INTERSECTED.material.emissive.setHex(0xff00ff);
+                    // controls.enabled = true;
+                    //  alert("intersected");  
+                    controls.enabled = false; // !controls.enabled;
+                    controls.autoRotate = false;
+                    controls.update();
+                    maakTekst("Double click to run.");
+                    move = false;
+                }
+
+            } else {
+
+                if (INTERSECTED) {
+                    INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
+                    schaal = 1.0
+                    INTERSECTED.scale.set(schaal, schaal, schaal);
+                }
+
+                INTERSECTED = null;
+
+            }
+
+
+        }   // einde findIntersections 
+
+        function startController() {
+            controls = new OrbitControls(camera, renderer.domElement);
+
+            controls.addEventListener('change', render);
+            controls.listenToKeyEvents(window);    // pijltjes toetsen.
+
+            controls.enableDamping = true;
+            // an animation loop is required when either damping or auto-rotation are enabled
+            controls.dampingFactor = 0.025;   // 0.05 
+
+            controls.minPolarAngle = Math.PI * 0.2;     // tilt. , x as.            
+            controls.maxPolarAngle = Math.PI * 0.85;    //  start hoek. 
+
+            controls.minAzimuthAngle = -minmaxAngleY;  //    rot y as.
+            controls.maxAzimuthAngle = +minmaxAngleY;  // 
+
+            controls.target.set(0, 10, 100);  //  controls.target.set(0, 10, 100);
+            controls.minDistance = 30.0;
+            controls.maxDistance = 490.0;
+
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = rotSpeed;   // 2 is default. 
+
+            controls.enabled = false;
+
+            camera.position.set(afstand, 100, 10 * 1000);
+            camera.lookAt(controls.target);
+
+            controls.enabled = true;
+            controls.update();
+        }
+        function kleurObject() {
+            kop.traverse((o) => {
+                if (o.isMesh) {
+                    o.material.emissive = new THREE.Color(0x555555);  //  333333
+                    o.material.metalness = 0.0;  // 0..1 ;  1 is mat. 
+                }
+            });
+        }
+        function renderer1() {
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+        }
+        function myrenderer() {
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 0.7;   // dit scheelt veel. 
+            // renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.shadowMap.enabled = true;  // new
+            renderer.colorManagement = true; // voor blender glb export . 
+            document.body.appendChild(renderer.domElement);
+        }
+
+        function maakTekst(tekst) {
+            if (textMesh != null) {
+                scene.remove(textMesh);
+            }
+
+            const loader = new FontLoader();
+            let font = undefined,
+                fontName = 'optimer', // helvetiker, optimer, gentilis, droid sans, droid serif
+                fontWeight = 'bold'; // normal bold
+
+            loader.load('./fonts/helvetiker_regular.typeface.json', function (font) {
+                const textGeo = new TextGeometry(tekst, {
+                    font: font,
+                    size: 8,
+                    height: 5,
+                    curveSegments: 12
+                });
+
+                textGeo.computeBoundingBox();
+                const centerOffset = - 0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+
+                const materials = [
+                    new THREE.MeshBasicMaterial({ color: 0xaaffaa }), // front
+                    new THREE.MeshBasicMaterial({ color: 0x00ff00 }) // side
+                ];
+
+                textMesh = new THREE.Mesh(textGeo, materials);
+                textMesh.scale.z = 0.1;
+
+                textMesh.position.x = -10;  // centerOffset;
+                textMesh.position.y = -2 * radius;
+                textMesh.position.z = 2 * radius;
+                textMesh.rotation.y = Math.PI * 2;
+
+                scene.add(textMesh);
+            });
+        }
+
+        /* 
+        function mmaakTekst(tekst) {
+            if (textMesh != null) {
+                //  alert("tekst bestaat");
+                // textMesh.geometry.dispose();
+                //  textMesh.material.dispose();
+                scene.remove(textMesh);
+                render();
+            }
+
+            const loader = new FontLoader();
+            let font = undefined,
+                fontName = 'optimer', // helvetiker, optimer, gentilis, droid sans, droid serif
+                fontWeight = 'norman'; // normal bold
+
+            loader.load('jsm/fonts/helvetiker_regular.typeface.json', function (font) {
+
+                const textGeo = new TextGeometry(tekst, {
+                    font: font,
+                    size: 15,
+                    height: 8,
+                    curveSegments: 12,
+                    bevelEnabled: false,  // false
+                    bevelThickness: 1,  // 10
+                    bevelSize: 0.8,    // 8
+                    bevelOffset: 0,
+                    bevelSegments: 1  // 5
+                });
+
+                textGeo.computeBoundingBox();
+                const centerOffset = - 0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+
+                let kleur = 0xffffff;
+                const materials = [
+                    new THREE.MeshBasicMaterial({ color: kleur }), // front
+                    new THREE.MeshBasicMaterial({ color: 0x000000 }) // side
+                ];
+
+                textMesh = new THREE.Mesh(textGeo, materials);
+                textMesh.scale.z = 0.05;
+
+                textMesh.position.x = centerOffset;
+                textMesh.position.y = +170;  // windowHalfY
+                textMesh.rotation.y = Math.PI * 2;
+
+                scene.add(textMesh);
+            });
+        }
+            */ 
+
+    </script>
+
+</body>
+
+</html>

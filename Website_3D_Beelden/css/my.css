@@ -1,0 +1,97 @@
+@charset "utf-8";
+/* CSS Document 
+Media Queries should usually include density as well as dimensions.
+*/
+body{ 
+ 	background-image:url('../plaatjes/marjan_alex.jpg');
+	background-size: cover; 
+	background-position: center;
+	background-repeat: no-repeat;
+	background-color: silver;
+	margin:0;
+	padding:0; 
+ 	font-size: 2vw;
+  /*	cursor: url('plaatjes/biglips.cur');  	*/ 
+	cursor:  url(../plaatjes/stones.cur) , auto;
+}
+
+#cube6{display: none}
+
+#beelden{display: none}
+
+
+div#info{
+	position:absolute;
+	width:200px;
+	background-color:#CCC;
+	border:1px solid blue; 
+	margin-left: 100px; 
+	margin-top:5px;
+	padding:5px; 
+
+	border-radius:20px;	
+	z-index: 5; 
+	text-align:center; 
+  	cursor: url(../plaatjes/select.cur) , auto ;  	
+}
+
+
+#cube6{display: none}
+
+#beelden{display: none}
+
+
+div#particles{
+	float:right;
+	width:20%; 
+	height: 20%;
+	/* margin-top:60%;  */
+	 background-color:transparent;	
+}
+div#spotlights{
+	display:none;
+	float:right;	
+	width:150px;
+	height:50px;
+	background-color:#CCC;
+	margin-left:100px;
+	margin-top: 30%;
+	padding-top:20px;
+	padding-left:40px;
+	border-radius:105px;	
+}
+div#kubus{
+	display: none;  
+	/*
+	width:50px;
+	height:50px;
+	background-color: transparent;
+	z-index: -5; 	 */
+	/* Three.js tekent toch zwart, helaas */
+}
+
+div#caroussel, div#particles
+{
+	transform:rotate(30deg);
+	-ms-transform:rotate(30deg); /* IE 9 */
+	-webkit-transform:rotate(30deg); /* Safari and Chrome */
+  	cursor: url(../plaatjes/stones.cur), auto; 
+	  
+}
+
+a{
+	color:#933;	
+	cursor: url(../plaatjes/biglips.cur), auto; 
+}
+a:visited{
+	color: grey;
+	background-color:#999; 
+}
+a:hover{background-color:#0F0;
+}
+
+a#kerst{
+	color:green;
+	background-color:yellow
+}
+

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Website of Rob van Cooten.</title>
+  <!-- 
+      <meta http-equiv="refresh" content="10">
+    -->
+  <meta name="author" content=" Rob van Cooten. Waalre. ">
+  <meta name="keywords" content="3D models, Threejs, Ceramics">
+  <!--  https://sourceforge.net/projects/three-js.mirror/  -->
+  <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+  <link href="css/my.css" rel="stylesheet" type="text/css">
+  <link href="Website_3D_Beelden/css/menu.css" rel="stylesheet" type="text/css">
+
+  <link rel="shortcut icon" href="./images/rob.ico">
+
+  <!-- 
+    <style>
+      iframe::-webkit-scrollbar  {
+        overflow-x: hidden;
+      }
+      iframe{
+        overflow: hidden;
+      }
+    </style>
+    -->
+
+  <script src="./Website_3D_Beelden/build/jquery.js"></script>
+  <!--     <script src="https://code.jquery.com/jquery-latest.min.js"></script>   -->
+</head>
+
+<body>
+  <div id="menu"> js vult dit in.... </div>
+  <div id="bubbelinfo">
+    <!-- js vult tekst dit -->
+  </div>
+  <br>
+  <br><br>
+  <br><br>
+  <h3 id="tekst" title="Just fun."> Ceramic Heads made by Marjan.<br><br>
+    <a href="https://robvancooten.write2me.nl" title="Guestbook Rob van Cooten">Guestbook.
+    </a>
+  </h3>
+  <br>
+
+  <div id="spotlights">
+    <span> Spelen met licht...
+      <br>
+    </span>
+  </div>
+
+  <!-- scrolling="no" is obsolete. Title werkt niet ook met: aria-hidden="true" niet-->
+  <iframe id="virtueelKopje" alt="Ceramic Head." title="Vertices of a Head." src="./virtueelKopje.html"
+    scrolling="no"></iframe>
+  <iframe id="kopje" alt="Ceramic Head." title="Ceramic Head." src="./kopje.html" scrolling="no"></iframe>
+
+  <iframe id="geinvogel" alt="geinVogel." title="Ceramic Head." src="./geinVogel.html" scrolling="no"></iframe>
+
+  <!--    <div id="particles" type="text/html" data="particles/index.html">   -->
+  <div id="particles">
+    <!-- Hierin draait ./particles/index.html via jQuery.  -->
+  </div>
+  <div id="gordijnen">
+    <img src="images/kopL.jpg" id="kopL" alt="Head on Left side." title="Head on Left side.">
+    <img src="images/gordijn.jpg" id="gordijnL" alt="gordijnL">
+    <img src="images/gordijn.jpg" id="gordijnR" alt="gordijnR">
+
+    <img src="images/kopR.jpg" id="kopR" alt="Head on Right side." title="Head on Right side.">
+  </div>
+
+  <div id="gordijn_buttons">
+    <input type="button" id="buttonL" value="open" title="Press to open curtains." class="unselectable">
+    <!--   onclick="open_gordijn();"> -->
+    <input type="button" id="buttonR" value="close" title="Press to close curtains." class="unselectable" disabled>
+    <!-- onclick="close_gordijn();" disabled>    -->
+  </div>
+  <div id="ani"> </div>
+  <div id="view"> <img src="images/view.png" title="grappig he..." alt="grappige oogjes"> </div>
+  <div id="footer">
+    <!-- via jquery disabled -->
+    <!--  Chrome staat dit niet toe:   
+        <a href="https://jigsaw.w3.org/css-validator/check/referer">
+        </a>   -->
+  </div>
+  <!-- Voor script module:    -->
+  <script async src="./Website_3D_Beelden/build/es-module-shims.js">
+  </script>
+
+  <script type="importmap"> 
+			{
+				"imports": {
+					"three": "https://cdn.jsdelivr.net/npm/three@0.183.1/build/three.module.min.js"
+				}
+			}  
+    </script>        
+
+  <script type="module">
+    import { leesMenuTekst } from './Website_3D_Beelden/my_js/menu_tekst.js';
+    import { open_gordijn, close_gordijn } from './js/gordijn.js';
+    import { toWord, dayofyear } from './scripts/towords.js';
+    import { eerstePaasDag } from './scripts/pasen.js';
+    import * as THREE from 'three';
+
+    //  import { open_gordijn, close_gordijn } from './js/gordijn.js' ; 
+    //  alert("hostname: " + location.hostname ); 
+
+    let menu = document.getElementById("menu");
+    menu.innerHTML = leesMenuTekst();
+
+    let spaties = "&nbsp; &nbsp; &nbsp; &nbsp;";
+    let mess = "";
+    let messlocal = "<h4>" + spaties + " HELLO localhost.</br>";
+    messlocal += spaties + "Threejs Versie: " + THREE.REVISION;
+    if (window.jQuery) {       // jQuery is loaded => print the version     
+      messlocal = messlocal + '<br>' + spaties + 'jQuery versie: ' + (jQuery.fn.jquery) + "</h4>";
+
+
+      toonFeestjes();
+      let t = document.getElementById("footer");
+
+      if (location.hostname == "localhost")
+        t.innerHTML = messlocal + " " + mess
+      else
+        t.innerHTML = mess
+    }
+
+    $(document).ready(function () {
+      let buttonL = document.getElementById("buttonL");
+      let buttonR = document.getElementById("buttonR");
+      buttonL.addEventListener("pointerdown", open_gordijn, false);
+      buttonR.addEventListener("pointerdown", close_gordijn, false);
+
+      close_gordijn();  // dan is close knop weg. 
+
+      // alert("Document Ready");
+      let tekst = 'Roterende beelden in 3D. Of  ' +
+        '  ff spelen. <br>';
+      let bubbelinfo = document.getElementById("bubbelinfo");
+      bubbelinfo.innerHTML = tekst;
+
+      $("#particles").load("particles/index.html");
+
+      //  if (location.hostname != "localhost")
+      //    document.getElementById("footer").style.display = "none";
+    });   // end function ready. 
+
+    function toonFeestjes() {
+      const d = new Date();
+      // const d = new Date("July 11, 2025");
+      let jaar = d.getYear();
+      // alert(d); 
+      // let dag = d.getDate() ; 
+      let dag = dayofyear(d);
+      const paasdag = eerstePaasDag(d.getFullYear());
+
+      // console.log(paasdag); 
+      const lente = new Date(jaar + "-03-20");
+      const zomer = new Date(jaar + "-06-21");
+      const herfst = new Date(jaar + "-09-22");
+      const dec5 = new Date(jaar + "-12-05");
+      const kerst = new Date(jaar + "-12-25");
+      const nieuwjaar = new Date(jaar + "-12-31");
+
+      let aantaldagentotlente = (dayofyear(lente) - dag).valueOf();
+      let aantaldagentotpasen = (dayofyear(paasdag) - dag).valueOf();
+      let aantaldagentotpinsteren = aantaldagentotpasen + 49;
+      //  alert ("aantal dagen tot Pasen: " + aantaldagentotpasen) ;   
+      let aantaldagentot5dec = (dayofyear(dec5) - dag).valueOf();
+      let aantaldagentotzomer = (dayofyear(zomer) - dag).valueOf();
+      let aantaldagentotherfst = (dayofyear(herfst) - dag).valueOf();
+      let aantaldagentotkerst = (dayofyear(kerst) - dag).valueOf();
+      let aantaldagentotnieuwjaar = (dayofyear(nieuwjaar) - dag + 1).valueOf();
+
+      //  alert("aantal dagen tot Sinterklaas: " + toWord(aantaldagen) );  
+      if (aantaldagentotlente > 0)
+        mess = mess + "<h4>" + spaties + "aantal dagen tot de lente: " + toWord(aantaldagentotlente) + "</br>";
+      else if (aantaldagentotpasen > 0)
+        mess = mess + "<h4>" + spaties + "aantal dagen tot 1e Paasdag: " + toWord(aantaldagentotpasen) + "</br>";
+      else if (aantaldagentotpinsteren > 0)
+        mess = mess + "<h4>" + spaties + "aantal dagen tot Pinsteren: " + toWord(aantaldagentotpinsteren) + "</br>";
+      else if (aantaldagentotzomer > 0)
+        mess = mess + "<h4>" + spaties + "aantal dagen tot de zomer: " + toWord(aantaldagentotzomer) + "</br>";
+      else if (aantaldagentotherfst > 0)
+        mess = mess + "<h4>" + spaties + "aantal dagen tot de herfst: " + toWord(aantaldagentotherfst) + "</br>";
+      else if (aantaldagentot5dec > 0)
+        mess = mess + "<h4>" + spaties + "aantal dagen tot Sinterklaas: " + toWord(aantaldagentot5dec) + "</br>";
+      else if (aantaldagentotkerst > 0)
+        mess = mess + "<h4>" + spaties + "aantal dagen tot Kerst: " + toWord(aantaldagentotkerst) + "</br>";
+      else if (aantaldagentotnieuwjaar > 0)
+        mess = mess + "<h4>" + spaties + "aantal dagen tot Nieuwjaar: " + toWord(aantaldagentotnieuwjaar) + "</br>";
+      else mess = mess + "<h4>" + spaties + "Geen feestjes voorlopig " + "</br>";
+      // Example usage:
+      // const nextEaster = nextEasterSunday();
+      // console.log(`Volgende eerste paasdag: ${nextEaster.toLocaleDateString('nl-NL')}`);
+
+    }
+
+  </script>
+</body>
+
+</html>

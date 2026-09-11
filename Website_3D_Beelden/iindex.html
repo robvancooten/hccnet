@@ -1,0 +1,77 @@
+<!-- bron: 
+Modellen via 123D Catch.
+https://www.youtube.com/watch?v=uCKKA_KIxWs     Combining materials.  
+toonBeelden.js bevat de start code.  
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>3D Keramiek modellen.</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link href="css/main.css" rel="stylesheet" type="text/css">
+    <link href="css/modellen.css" rel="stylesheet" type="text/css">
+    <link href="css/menu.css" rel="stylesheet" type="text/css">
+
+
+    <!-- voor play, stop icon:  -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!--      -->
+    <script src="./my_js/menu_tekst.js"></script>
+    <script src="./my_js/init.js"></script>
+    <script src="./my_js/toonBeelden.js"></script>
+    <script src="./my_js/navigator.js"></script>
+
+    <script src="./my_js/modellen.js"></script>
+
+    <!--  3D gebeuren:    -->
+    <script src="./my_js/belichting.js"></script>
+    <script src="./my_js/rendering.js"></script>
+    <script src="./my_js/events.js"></script>
+    <script src="./my_js/ladenObjecten.js"></script>
+    <script src="./my_js/toonTekst_Beelden.js"></script>
+
+    <script src="./js/fullscreen.js"></script>
+    <script src="./js/Detector.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r73/three.min.js"></script>
+
+    <!--
+<script src="./js/three73.min.js"></script> 
+<script src="./js/three.min.js"></script>
+-->
+    <script src="./js/loaders/OBJLoader.js"></script>
+    <!-- load the font file from canvas-text -->
+    <script src="js/geometries/TextGeometry.js"></script>
+    <script src="js/utils/FontUtils.js"></script>
+    <script src="js/fonts/helvetiker_regular.typeface.js"></script>
+
+    <script src="./js/Stats.js"></script>
+
+    <!-- voor hiding en showing nav knoppen:   -->
+    <script src="https://code.jquery.com/jquery-latest.min.js"></script>
+    <!-- <script src="./js/jquery-3.1.1.min.js"></script>  -->
+
+</head>
+
+<body onload="startProgramma()">
+    <!-- via init.js -->
+
+    <div id="menu">
+      <!-- menutekst dynamysch.-->
+    </div>
+    <div id="pijltjes">
+        <img src="images/pijlPrev.jpg" id="prev" alt="vorige beeld" title="vorige beeld">
+        <div title="automatisch of met de navigator." id="navigator">
+            JS tekst komt hier. Info over navigator </div>
+        <img src="images/pijlNext.jpg" id="next" alt="volgend beeld" title="volgend beeld">
+    </div>
+
+    <div id="container">
+        <!-- 3D beelden -->
+    </div>
+
+</body>
+
+</html>

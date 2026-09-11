@@ -1,0 +1,259 @@
+@charset "utf-8";
+/* media query */
+/* Iphone, http://stephen.io/mediaqueries/#iPhone:  */
+/*
+ De eerste generaties hadden een resolutie van 480 x 320 pixels (163 ppi). Vanaf de iPhone 4 is de resolutie verdubbeld naar 960 x 640 pixels (326 ppi) en vanaf de iPhone 5 is de resolutie 1136 x 640 pixels
+ */
+/* 
+Geen RETINA  
+*/
+/* IPHONE 3: */
+@media screen and (device-width: 320px) and (device-height: 480px){
+	#container {
+			width: 600px;
+			height: 600px; 
+	} 
+	#modellen{
+		height:500px;
+	}
+}
+/* IPHONE 3: */
+@media screen and (device-width: 320px) and (device-height: 480px)
+	and (orientation : landscape)
+	{
+	#container {
+			width: 900px;
+			height:900px;
+	} 
+	#modellen{
+		height:800px;
+	}	  	
+	
+}
+
+/* iPhone 6 in portrait, geen retina    */
+@media only screen 
+	and (min-device-width : 375px) 
+	and (max-device-width : 667px) 
+	and (orientation : portrait){ 
+/* STYLES GO HERE */ 
+	#container {
+			width: 350px;
+			min-height:350px;
+	}
+	#modellen{
+		height:300px;
+	}	
+}
+
+
+
+/* iPhone 6 in landscape, geen retina     */
+@media only screen 
+	and (min-device-width : 375px) 
+	and (max-device-width : 667px) 
+	and (orientation : landscape)
+{ 
+   /* STYLES GO HERE, breedte 2 keer zo veel. */
+	#container {
+			width: 300px;
+			min-height:200px;			
+	}   
+	#modellen{
+		height:250px;
+	}	
+}
+
+@media only screen and (min-width: 481px) and (max-width: 980px)
+     and (orientation: landscape)
+{
+	/*
+	IPAD-2: 9,7-inch display (h: 1024 x w:768 pixels)
+	*/
+	#container {
+			width: 440px;
+			min-height:350px;			
+	}
+	#modellen{
+		height:300px;
+	}	
+}
+@media only screen and (min-width: 981px) 
+	and (max-width: 1250px) 
+{
+	/*
+	IPAD-2: 9,7-inch display (1024 x 768 pixels)
+	*/
+			#container {
+			width: 900px;
+			min-height:768px;			
+		}
+	#modellen{
+		height:700px;
+	}		
+}
+@media only screen and (min-width: 1251px)
+{
+	/*
+	laptop
+	*/
+		#container {
+			width: 1024px;
+			min-height:950px;			
+		}
+	#modellen{
+		height:800px;
+	}		
+}
+@media only screen and (max-width: 480px)
+{
+	/*
+	Super kleinscherm.
+	*/
+	#container {
+	width: 400px;
+	min-height:350px;	
+	}
+	#modellen{
+		height:300px;
+	}	
+}
+
+/* IPAD2  */
+@media all and (device-width: 768px) and (device-height: 1024px) and (orientation:portrait) {
+  /* your css rules for ipad portrait */
+  	#container {
+	width: 680px;
+	min-height:1024x;
+	}
+	#modellen{
+		height:900px;
+	}	
+}
+@media all and (device-width: 768px) and (device-height: 1024px) and (orientation:landscape) {
+  /* your css rules for ipad landscape */
+	#container {
+	width: 680px;
+	min-height:550px;	
+	}
+	#modellen{
+		height:500px;
+	}	
+}
+
+
+/**************************************************************************************/
+/* iPhone 6 in landscape met Retina    */
+@media only screen 
+	and (min-device-width : 375px) 
+	and (max-device-width : 667px) 
+	and (orientation : landscape) 
+ 	and (-webkit-device-pixel-ratio: 2)
+{ 
+   /* STYLES GO HERE, breedte 2 keer zo veel. */
+	#container {
+			width: 600px;
+			min-height:450px;			
+	}
+	#modellen{
+		height:400px;
+	}	   
+}
+
+/* iPhone 6 in portrait, retina    */
+@media only screen 
+	and (min-device-width : 375px) 
+	and (max-device-width : 667px) 
+	and (orientation : portrait)
+ 	and (-webkit-device-pixel-ratio: 2) { 
+/* STYLES GO HERE */ 
+	#container {
+			width: 700px;
+			min-height:550px;
+	}
+	#modellen{
+		height:500px;
+	}	
+}
+@media only screen and (min-width: 481px) and (max-width: 980px)
+     and (orientation: landscape)
+	  	and (-webkit-device-pixel-ratio: 2)
+{
+	/*
+	IPAD-2: 9,7-inch display (h: 1024 x w:768 pixels)
+	*/
+	#container {
+			width: 880px;
+			min-height:650px;			
+	}
+	#modellen{
+		height:550px;
+	}	
+}
+@media only screen and (min-width: 981px) 
+	and (max-width: 1250px)
+	 	and (-webkit-device-pixel-ratio: 2) 
+{
+	/*
+	IPAD-2: 9,7-inch display (1024 x 768 pixels)
+	*/
+			#container {
+			width: 1800px;
+			min-height:350px;			
+		}
+	#modellen{
+		height:300px;
+	}		
+}
+@media only screen and (min-width: 1251px)
+ 	and (-webkit-device-pixel-ratio: 2)
+{
+	/*
+	laptop
+	*/
+		#container {
+			width: 2048px;
+			min-height:1800px;			
+		}
+	#modellen{
+		height:1500px;
+	}		
+}
+@media only screen and (max-width: 480px)
+ 	and (-webkit-device-pixel-ratio: 2)
+{
+	/*
+	Super kleinscherm.
+	*/
+	#container {
+	width: 800px;
+	min-height:650px;
+	}
+	#modellen{
+		height:550px;
+	}	
+}
+
+/* IPAD2  */
+@media all and (device-width: 768px) and (device-height: 1024px) and (orientation:portrait) 
+ 	and (-webkit-device-pixel-ratio: 2){
+  /* your css rules for ipad portrait */
+  	#container {
+	width: 1360px;
+	min-height:1150px;
+	}
+	#modellen{
+		height:950px;
+	}	
+}
+@media all and (device-width: 768px) and (device-height: 1024px) and (orientation:landscape) 
+ 	and (-webkit-device-pixel-ratio: 2){
+  /* your css rules for ipad landscape */
+	#container {
+	width: 1360px;
+	min-height:1150px;	
+	}
+	#modellen{
+		height:950px;
+	}	
+}

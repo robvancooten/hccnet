@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>X-ray of Heads.</title>
+    <meta charset="utf-8">
+    <!-- 
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+       -->
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D models, Threejs, Ceramics">
+    <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="css/menu.css">
+</head>
+
+<body>
+    <div id="menu">
+    </div>
+    <!-- Import maps polyfill -->
+    <script type="importmap">
+			{
+				"imports": {
+                        "three": "./build/three.module.js"
+				}
+			}
+		</script>
+    <script type="module">
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+        import * as THREE from 'three';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+        import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+        import { FontLoader } from './jsm/loaders/FontLoader.js';
+
+        import { VertexNormalsHelper } from './jsm/helpers/VertexNormalsHelper.js';
+        import { VertexTangentsHelper } from './jsm/helpers/VertexTangentsHelper.js';
+
+        let scene, renderer, controls;
+        let camera, container;
+        let vnh, vth;
+        let mesh, group;
+        let richting = 1;
+        let r = +1;
+        let message = 'Head in Three ways.';  // Three.js\n Simple text.
+        let textMesh = null;
+
+        const pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+
+        init();
+        animate();
+
+        function init() {
+            maakMenu();
+            maakScene();
+            maakBelichting();
+            maakKubus();
+            // manager
+            laadKoppen();
+            toonTekst(message);
+
+            maakRenderer();
+
+            startOrbitController();
+
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener("pointerdown", pressingDown, false);
+
+        }   // einde init. 
+
+
+        function pressingDown(e) {
+            let plusnul = 0.001;
+            let minnul = -plusnul;
+
+            //    alert("YES klik"); 
+            if (richting == +1) {
+                richting = plusnul
+                toonTekst("Stopped.");
+            }
+            else if (richting == plusnul) {
+                richting = -1
+                toonTekst("Rotating.");
+            }
+            else if (richting == -1) {
+                richting = minnul;
+                toonTekst("Stopped.");
+            }
+            else {
+                richting = 1;
+                toonTekst("Rotating.");
+            }
+
+            //    controls.autoRotateSpeed = richting * 2.4 ; 
+        }
+
+        function toonNormals() {
+            let lengte = 5;
+            vnh = new VertexNormalsHelper(mesh, lengte);   // toont normals, met lengte 5. 
+            scene.add(vnh);
+
+            vth = new VertexTangentsHelper(mesh, lengte);
+            scene.add(vth);
+        }
+
+        function toonEdges() {
+            const edges = new THREE.EdgesGeometry(mesh.geometry);
+            let line = new THREE.LineSegments(edges);
+            line.material.depthTest = false;
+            line.material.opacity = 0.3;
+            line.material.transparent = true;
+            line.position.x = + 40;  // -4
+            group.add(line);
+            scene.add(new THREE.BoxHelper(line));
+
+            //  mesh.geometry.deleteAttribute( 'normal' );
+        }
+
+        function toonWireFrame() {
+            const wireframe = new THREE.WireframeGeometry(mesh.geometry);
+            let line = new THREE.LineSegments(wireframe);
+            line.material.depthTest = false;
+            line.material.opacity = 0.3;   // 0.25
+            line.material.transparent = true;
+            line.position.x = 20;   // +4
+            group.add(line);
+            scene.add(new THREE.BoxHelper(line));
+        }
+
+        function toonVertices() {
+            let aantal;
+            const clones = [];
+            // constructor: radius, widthSegments, heightSegments, phiStart, phiLength, thetaStart, thetaLength
+
+            let geometryBol = new THREE.SphereGeometry(0.6, 3, 2);   // 32, 16 width height segments. 
+            let materialBol = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            let bolletje = new THREE.Mesh(geometryBol, materialBol);
+            // scene.add(bolletje);
+
+            let box = new THREE.Group;
+
+            if (mesh.geometry instanceof THREE.BufferGeometry) {
+                const positionAttribute = mesh.geometry.getAttribute('position');
+                const vertex = new THREE.Vector3();
+                aantal = positionAttribute.count;
+                // console.log("aantal vertices: " + aantal);
+
+                for (let k = 0; k < aantal; k++) {  // delen 3, color en normals attributen weglaten. 
+
+                    //   positionAttribute.setXYZ(k, vertex.x * 2, vertex.y, vertex.z); // write coordinates back
+                    //   positionAttribute.needsUpdate = true;
+
+                    vertex.fromBufferAttribute(positionAttribute, k); // read vertex
+                    // do something with vertex
+
+                    if (k % 50 == 0) {
+
+                        clones[k] = bolletje.clone();
+                        //  console.log("vertex.x: " + vertex.x ); 
+                        let schaal = 5;
+                        clones[k].position.x = vertex.x * schaal;
+                        clones[k].position.y = vertex.y * schaal;
+                        clones[k].position.z = vertex.z * schaal;
+                        //   scene.add(clones[k]);
+
+                        box.add(clones[k]);
+                    }
+
+                }
+                box.position.y = +0;
+                box.position.x = -100;
+                scene.add(box);
+                scene.add(new THREE.BoxHelper(box));
+                //   scene.add(new THREE.BoxHelper(line));
+
+            }
+        }  // einde toonVertices. 
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (vnh) vnh.update();
+            if (vth) vth.update();
+
+
+            let rot = controls.getAzimuthalAngle();
+            if (rot < controls.minAzimuthAngle + 0.01)
+                richting = -1
+            else if (rot > controls.maxAzimuthAngle - 0.01)
+                richting = +1;
+
+            controls.autoRotateSpeed = richting;
+
+            controls.update();
+            render();
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+
+        function startOrbitController() {
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.addEventListener('change', render);
+            controls.listenToKeyEvents(window);    // pijltjes toetsen.
+            //	controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+            //		controls.dampingFactor = 0.05;
+
+            controls.minPolarAngle = Math.PI * 0.35;     // tilt. , x as.            
+            controls.maxPolarAngle = Math.PI * 0.6;
+
+            controls.minAzimuthAngle = -Math.PI * 0.25;      // rot y as.
+            controls.maxAzimuthAngle = +Math.PI * 0.4;
+
+            //controls.target.set(0, 10, 0);
+            controls.minDistance = 50.0;
+            controls.maxDistance = 2000.0;
+
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 2.3;   // 2 is default. 
+            controls.update();
+        }
+
+        function maakMenu() {
+            let menu = document.getElementById("menu");
+            if (isTouchDevice())
+                menu.innerHTML = leesMenuTekst() + "X-ray heads. Vertices, Normals and Meshes. Use fingers to rotate. Touch to stop/start.";
+            else
+                menu.innerHTML = leesMenuTekst() + "X-ray heads. Vertices, Normals and Meshes. Use mouse to rotate/zoom or stop/start.";
+
+            kleurActiveLink();
+        }
+
+        function maakRenderer() {
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+        }
+
+        function maakScene() {
+            container = document.createElement('div');
+            document.body.appendChild(container);
+
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 3000);
+            camera.position.z = 400;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x005500);
+        }
+
+        function maakBelichting() {
+            let plight = new THREE.PointLight();
+            plight = new THREE.PointLight(0x228B22, 100.0);
+            plight.position.set(200, 100, 150);
+            scene.add(plight);
+            //   scene.add(new THREE.PointLightHelper(light, 15));
+        }
+
+        function maakKubus() {
+            // make bodem: 
+            const gridHelper = new THREE.GridHelper(600, 40, 0x339933, 0x808080);   //  400 
+            gridHelper.position.y = - 50;
+            gridHelper.position.x = - 0;
+            scene.add(gridHelper);
+
+            // make plafond: 
+            const polarGridHelper = new THREE.PolarGridHelper(200, 16, 8, 64, 0x339933, 0x808080);
+            polarGridHelper.position.y = 150;  // - 150;
+            polarGridHelper.position.x = 0; // 200;
+            scene.add(polarGridHelper);
+        }
+        function laadKoppen() {
+            let model = pad + 'bladerKopV.glb';
+            // model = 'modellen/bladerKop/bladerKopV.glb';
+            const loader = new GLTFLoader();
+            loader.load(model, function (gltf) {
+                mesh = gltf.scene.children[0];
+                mesh.geometry.computeTangents();
+                mesh.scale.multiplyScalar(1);  // 50 
+                mesh.updateMatrixWorld(true);
+                //   scene.add(mesh); 
+                //   mesh.position.y=10;
+                // generates bad data due to degenerate UVs
+                group = new THREE.Group();
+                group.scale.multiplyScalar(5);  // 50 
+                scene.add(group);
+
+                // To make sure that the matrixWorld is up to date for the boxhelpers
+                group.updateMatrixWorld(true);
+                group.add(mesh);
+                scene.add(new THREE.BoxHelper(mesh));   // box om middelste kop. 
+
+                toonWireFrame();
+                //   toonEdges();
+                toonVertices();
+                toonNormals();
+
+            });    // einde loader                  
+        }
+
+        function toonTekst(tekst) {
+            if (textMesh != null)
+                scene.remove(textMesh);
+
+            const loader = new FontLoader();
+            loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
+
+                const color = 0xffffff;   //0x006699;
+
+                const matDark = new THREE.LineBasicMaterial({
+                    color: color,
+                    side: THREE.DoubleSide
+                });
+
+                const matLite = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 0.4,
+                    side: THREE.DoubleSide
+                });
+
+                let grootte = 48;
+                const shapes = font.generateShapes(tekst, grootte);   // 
+
+                const geometry = new THREE.ShapeGeometry(shapes);
+
+                geometry.computeBoundingBox();
+
+                const xMid = - 0.5 * (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
+
+                geometry.translate(xMid, 0, 0);
+
+                // make shape ( N.B. edge view not visible )
+
+                textMesh = new THREE.Mesh(geometry, matLite);
+                textMesh.position.y = - 200;  // -150
+                scene.add(textMesh);
+
+                render();
+
+            }); //end load function
+
+        }
+    </script>
+</body>
+
+</html>

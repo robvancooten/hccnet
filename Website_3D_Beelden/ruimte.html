@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<!--  http://localhost/www/hccnet/Website_3D_Beelden/ruimte.html  -->
+	<title>Rotating world.</title>
+	<meta charset="utf-8">
+	<!-- 
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		-->
+	<meta name="author" content=" Rob van Cooten. Waalre. ">
+	<meta name="keywords" content="3D models, Threejs, Ceramics">
+	<!--  https://sourceforge.net/projects/three-js.mirror/  -->
+	<meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+	<link type="text/css" rel="stylesheet" href="css/main.css">
+	<link type="text/css" rel="stylesheet" href="css/menu.css">
+</head>
+
+<body>
+	<div id="menu">
+		<!-- menutekst dynamysch.-->
+	</div>
+
+	<script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+				}
+			}
+		</script>
+	<script type="module">
+		import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+		// https://discourse.threejs.org/t/how-do-you-do-to-work-with-external-js-classes-files-and-put-this-on-a-main-js-file-with-modules/26564/2
+		import * as THREE from 'three';
+		import { OrbitControls } from './jsm/controls/OrbitControls.js';
+		import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+		import { RGBELoader } from './jsm/loaders/RGBELoader.js';  // voor renderer
+		import { leesModellen, modellen } from './my_js/all_modellen.js';
+		// import { leesMenuTekst, isTouchDevice, kleurActiveLink } from "./my_js/export_menu_tekst.js";
+
+		//import { maakKubus } from "./ruimte/kubus.js"  ; 				
+
+		let camera, scene, renderer;
+		let controls;
+		let kubus;
+		let kamer;
+		let kop;
+		const koppen = [];
+		let pad;
+		let nummer = 0;
+		let n, n_prev;
+		let spotter = 0;
+
+		let rot;
+		let tmp = -1;   // tijdelijk nummer, async oplossen.
+		let breedte = 100;
+		let lightHolder;
+		let spotLight, spotLightHelper;
+		let ambientLight;
+		let randomColor;  //  = 0xff00ff ;  
+		let max = 6;    // aantal koppen
+		let directionalLight;
+
+		const schaduw = true;
+
+		init();
+		animate();
+
+		function init() {
+			maakMenu();
+			leesModellen();
+			initKoppen();
+			maakScene();
+			maakBelichting();
+			maakCilinders();
+
+			maakRenderer();
+			startOrbitControls();
+			renderer.domElement.addEventListener('pointerdown', onPointerDown);
+			window.addEventListener('resize', onWindowResize);
+
+		}  // einde init. 
+
+			function onPointerDown(){
+				controls.autoRotateSpeed = -controls.autoRotateSpeed; 
+				// alert(controls.autoRotateSpeed); 
+
+			}
+
+		function maakMenu() {
+			let menu = document.getElementById("menu");
+			if (isTouchDevice())
+				menu.innerHTML = leesMenuTekst() + max + " Keramieke koppen van marjan tegen een wand. Use finger to rotate.";
+			else
+				menu.innerHTML = leesMenuTekst() + max + " Keramieke koppen van marjan tegen een wand. Use mouse to rotate, tilt and zoom.";
+
+			kleurActiveLink();
+
+			let loc = location.hostname;
+			if (loc == "localhost")
+				pad = "./modellen/glb/"
+			else
+				pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+		}
+
+		function initKoppen() {
+			if (max > modellen.length)
+				max = modellen.length;
+			//	console.log('modellen[] : ' + modellen )
+			for (let k = 0; k < max; k++) {
+				koppen[k] = -1;
+			}
+		}
+
+		function maakScene() {
+			camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+			camera.position.z = breedte * 0.4;   // 0.4
+
+			scene = new THREE.Scene();
+			scene.background = new THREE.Color(0x000000);
+		}
+
+		function maakCilinders() {
+			// https://stackoverflow.com/questions/48574526/three-js-multiple-images-on-cylinder-face
+			let group = new THREE.Group();
+			scene.add(group);
+
+			let hoogte;
+			hoogte = breedte;
+			let geometry = new THREE.CylinderGeometry(breedte, breedte, hoogte, 1, 1, false, 0, 2 * Math.PI / max); // 1/max cylinder wedge
+
+			let endCapMaterial = new THREE.MeshBasicMaterial({ color: 0x335555, side: THREE.BackSide });
+
+			// textures: 
+			const images = [];
+			const textures = [];
+			for (let k = 0; k < max; k++) {
+				// " + (k + 1) + "
+				let pos = k + 1;
+				//  console.log(">>> k= " + k);
+				images[k] = "./images/ruimte/" + pos + ".jpg";
+				textures[k] = new THREE.TextureLoader().load(images[k]);
+			}
+			//	let texture1 = new THREE.TextureLoader().load(img1);
+
+			// mesh
+			const meshes = [];
+			for (let k = 0; k < max; k++) {
+				// .reflectivity : Float tussen 0 en 1; 
+				meshes[k] = new THREE.Mesh(geometry, [new THREE.MeshPhongMaterial({ map: textures[k], side: THREE.BackSide, reflectivity: 1 }), endCapMaterial, endCapMaterial]);
+				if (schaduw)
+					meshes[k].receiveShadow = true;
+
+				meshes[k].rotation.set(0, k * 2 * Math.PI / max, 0);
+				group.add(meshes[k]);
+			}
+
+			/*	mesh = new THREE.Mesh(geometry, [new THREE.MeshBasicMaterial({ map: texture5 }), endCapMaterial, endCapMaterial]);
+				mesh.rotation.set(0, 4 * 2 * Math.PI / max, 0);
+				group.add(mesh);  
+			*/
+		}
+
+
+		function onWindowResize() {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+		}
+
+		function plaatsKop(n) {
+			nummer = n;
+			let phi, theta; // theta - equator angle in radians around the y (up) axis.
+			//    let aantal = max;
+			let radius = breedte * 0.5;   // anders steken ze uit de wanden.
+
+			phi = Math.PI * 0.5;
+			theta = 2 * Math.PI * (nummer / max) + Math.PI;
+			// console.log("theta: " + theta);
+			//  glb model y en z assen verwisseld.        
+			koppen[nummer].rotation.z = - theta + Math.PI; //   theta;       
+
+			//theta is rond om de y-as. 
+			koppen[nummer].position.setFromSphericalCoords(radius, phi, theta);
+
+			let centrum = new THREE.Vector3();
+			centrum = berekenCenter(koppen[nummer]);
+			let posY = centrum.y;
+
+			koppen[nummer].position.y = koppen[nummer].position.y - posY;
+			// helaas niet allemaal even hoog in y.
+
+			//	console.log("koppen[nummer].position.x: " + koppen[nummer].position.x);
+			scene.add(koppen[nummer]);
+
+			if (nummer < (max - 1)) {
+				nummer++;
+				//	console.log(' >> Dit nummer: ' + nummer);
+			}
+			else
+				nummer = 0;
+
+		}
+
+		function laadModel(n) {
+			nummer = n;
+			let model = pad + modellen[nummer] + '.glb';
+			// alert("nummer: " + nummer);
+			// console.log("model: " + model);
+
+			const loader = new GLTFLoader();
+			loader.load(model, function (gltf) {
+				koppen[nummer] = gltf.scene.children[0];
+				//   console.log("nummer: " + nummer)
+				if (schaduw) {
+					koppen[nummer].castShadow = true; //default is false
+					koppen[nummer].receiveShadow = false; //default
+				}
+				kop = koppen[nummer];
+
+				let schaalY = berekenHoogte(kop);
+				//	console.log("schaalY van nummer: " + schaalY + " / " + nummer);
+				let s = 17 / schaalY;
+				koppen[nummer].scale.multiplyScalar(s);  // 50 
+				koppen[nummer].position.y = -bodemPivot(kop);
+
+				kleurObject();
+				plaatsKop(nummer);
+			}
+			);    // einde loader
+		}   // einde laadModel	
+
+		function kleurObject() {
+			kop.traverse((o) => {
+				if (o.isMesh) {
+					o.material.emissive = new THREE.Color(0x333333);  //  333333
+					o.material.metalness = 0.3;  // 0..1 
+				}
+				if (schaduw) {
+					if (o.isLight) {
+						// alert("licht");
+						// const l = o as THREE.SpotLight
+						o.castShadow = true
+						o.shadow.bias = -0.003
+						o.shadow.mapSize.width = 2048
+						o.shadow.mapSize.height = 2048
+					}
+				}
+
+			});
+		}
+		function maakBelichting() {
+			ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+			scene.add(ambientLight);   // voor kop!
+
+			// White directional light at half intensity shining from the top: 0,5 
+			directionalLight = new THREE.DirectionalLight(0x00ffff, 3.5);  // voor pointlight leuk belichten.
+
+			directionalLight.position.set(-breedte * 15, -breedte * 15, breedte * 1.5);
+			// scene.add(directionalLight);
+
+			let intens = 10;
+			spotLight = new THREE.SpotLight(0xffffff, intens);
+
+			spotLight.position.set(0, 0, 0);
+
+			//	spotLight.angle = Math.PI * 0.1;
+			spotLight.penumbra = 0;   // 0..1  breed naar smal.
+			spotLight.decay = 0;
+			//	spotLight.distance = 2 * breedte;
+
+			spotLight.castShadow = true;
+			scene.add(spotLight);
+			//	lightHolder.add(spotLight);
+
+			spotLightHelper = new THREE.SpotLightHelper(spotLight);
+			//	scene.add(spotLightHelper);
+			if (schaduw) {
+				const helper = new THREE.CameraHelper(directionalLight.shadow.camera);
+				// scene.add(helper);
+				// alert(" shadow light: " + spotLight.isDirectionalLightShadow);  werkt niet 
+			}
+		}
+
+
+		function maakRenderer() {
+			//	renderer = new THREE.WebGLRenderer(); // geeft fout melding. 
+			renderer = new THREE.WebGLRenderer({ antialias: true });
+			if (schaduw) {
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+			}
+
+			//	renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			document.body.appendChild(renderer.domElement);
+		}
+
+		function startOrbitControls() {
+			controls = new OrbitControls(camera, renderer.domElement);
+			controls.addEventListener('change', render);
+
+			controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+			controls.dampingFactor = 0.05;  // 0 is heel langzaam. 
+
+			controls.minPolarAngle = Math.PI * 0.2;     // tilt. , x as.            
+			controls.maxPolarAngle = Math.PI * 0.8;
+
+			// controls.minAzimuthAngle = -Math.PI * 0.25;      // rot y as.
+			//   controls.maxAzimuthAngle = Math.PI * 0.4;
+
+			controls.minDistance = -breedte;    // 500 
+			controls.maxDistance = breedte * 5;     // 1500 tevens startpositie camera
+
+			controls.autoRotate = true;
+			controls.autoRotateSpeed = 3.0;   // 2 is default. 
+			controls.update();
+		}
+
+		function animate() {
+			requestAnimationFrame(animate);
+			rot = controls.getAzimuthalAngle() + Math.PI;  // Angle start 0, +pi tot - pi. 
+			// alert("controls.getAzimuthalAngle():" + controls.getAzimuthalAngle() ); 
+			// console.log(">> rotatie : " + rot * 180 / Math.PI) ; 
+			if (koppen[nummer] == -1 && tmp != nummer && (rot > nummer * 2 * Math.PI / max)) {
+				//	 alert("nummer:" + nummer);
+				tmp = nummer;
+				laadModel(nummer);
+			}
+			controls.update();
+			spotLight.quaternion.copy(camera.quaternion);
+			render();
+		}
+
+		function render() {
+			if (spotter < 100)
+				spotter = spotter + 0.5;
+
+			n_prev = n;
+			rot = controls.getAzimuthalAngle() + 1.2 * Math.PI;  // Angle start 0, +pi tot - pi. 
+			// console.log("rot: "  + rot); 
+			n = Math.trunc(rot * max / (2 * Math.PI));
+			n = (n + max / 2) % max;
+			//  console.log("kop nummer: " + n);
+
+			if (koppen[n] != - 1) {
+
+				if (n != n_prev) {
+					spotter = 0;
+					n_prev = n;
+				}
+				animeerSpotLight();
+			}
+			renderer.render(scene, camera);
+		}
+
+		function animeerSpotLight() {
+			let afstand = berekenAfstandSpotLightKop(n);
+			let hoogte = berekenHoogte(koppen[n]);
+
+			spotLight.distance = afstand + 50; // is achterwand ook verlicht. 
+			spotLight.angle = spotter / 100 * 0.3 * Math.PI * hoogte / afstand;
+			spotLight.target = koppen[n];
+			//		spotLightHelper.update();
+		}
+
+		function berekenAfstandSpotLightKop(n) {
+			let kopje = koppen[n];
+			// console.log ("kopje.positiob: " + kopje.position.x ) ; 
+			let a = (kopje.position.x - spotLight.position.x);
+			let b = (kopje.position.y - spotLight.position.y);
+			let c = (kopje.position.z - spotLight.position.z);
+			let d = Math.sqrt(a * a + b * b + c * c);
+			return d;
+		}
+
+		function berekenHoogte(kop) {
+			let box3 = new THREE.Box3().setFromObject(kop);
+			let size = new THREE.Vector3();
+			box3.getSize(size);
+			//	console.log("size: " + size.y);
+			return size.y;
+		}
+		function berekenCenter(kop) {
+			let box3 = new THREE.Box3().setFromObject(kop);
+			let centrum = new THREE.Vector3();
+			box3.getCenter(centrum);
+			//	console.log("centrum.y: " + centrum.y + " / " + nummer);
+			// 	target — the result will be copied into this Vector3.
+			return centrum;
+		}
+
+		function bodemPivot(kop) {
+			let box3 = new THREE.Box3().setFromObject(kop);
+			// alert(box3.min.y) ; 
+			return box3.min.y;
+		}
+
+	</script>
+
+</body>
+
+</html>

@@ -1,0 +1,59 @@
+####################################
+# netfabb Wavefront export         #
+####################################
+newmtl material_1
+Ka 0.2 0.2 0.2
+Kd 1.00000 1.00000 1.00000
+Ks 1.0 1.0 1.0
+map_Kd goudenGirlOnBall_b290caa37e97554da221cf08841a6562.jpg
+
+newmtl material_2
+Ka 0.2 0.2 0.2
+Kd 0.50196 0.50196 0.50196
+Ks 1.0 1.0 1.0
+
+newmtl material_3
+Ka 0.2 0.2 0.2
+Kd 0.74902 0.74902 0.74902
+Ks 1.0 1.0 1.0
+
+newmtl material_4
+Ka 0.2 0.2 0.2
+Kd 0.74902 0.74902 0.74902
+Ks 1.0 1.0 1.0
+map_Kd goudenGirlOnBall_b290caa37e97554da221cf08841a6562.jpg
+
+newmtl material_5
+Ka 0.2 0.2 0.2
+Kd 0.66667 0.66667 0.66667
+Ks 1.0 1.0 1.0
+map_Kd goudenGirlOnBall_b290caa37e97554da221cf08841a6562.jpg
+
+newmtl material_6
+Ka 0.2 0.2 0.2
+Kd 0.83137 0.83137 0.83137
+Ks 1.0 1.0 1.0
+map_Kd goudenGirlOnBall_b290caa37e97554da221cf08841a6562.jpg
+
+newmtl material_7
+Ka 0.2 0.2 0.2
+Kd 0.83137 0.83137 0.83137
+Ks 1.0 1.0 1.0
+
+newmtl material_8
+Ka 0.2 0.2 0.2
+Kd 0.66667 0.66667 0.66667
+Ks 1.0 1.0 1.0
+
+newmtl material_9
+Ka 0.2 0.2 0.2
+Kd 0.91373 0.91373 0.91373
+Ks 1.0 1.0 1.0
+map_Kd goudenGirlOnBall_b290caa37e97554da221cf08841a6562.jpg
+
+newmtl material_10
+Ka 0.2 0.2 0.2
+Kd 0.95686 0.95686 0.95686
+Ks 1.0 1.0 1.0
+map_Kd goudenGirlOnBall_b290caa37e97554da221cf08841a6562.jpg
+

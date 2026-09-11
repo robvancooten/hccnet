@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Source: three.js/examples/webgl_points_sprites.html  -->
+
+<head>
+	<title>Lot of Sprites.</title>
+	<meta charset="utf-8">
+	<!-- 
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		-->
+	<meta name="author" content=" Rob van Cooten. Waalre. ">
+	<meta name="keywords" content="3D models, Threejs, Ceramics">
+	<!--  https://sourceforge.net/projects/three-js.mirror/  -->
+	<meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+	<link type="text/css" rel="stylesheet" href="css/main.css">
+	<link href="css/menu.css" rel="stylesheet" type="text/css">
+
+	<style>
+		.lil-gui {
+			background-color: rgb(144, 143, 143);
+		}
+        #gui_container {
+            position: absolute;
+             top: 20%;    			
+            margin: auto;
+            /* ruimte er omheen, top left, bottom, right */
+            margin-left: 5%;
+            width: 100%;                        
+        }					
+
+        #gui {
+            position: relative;
+            margin: auto;
+            /* ruimte er omheen, top left, bottom, right */
+            margin-left: 5%;
+            width: 10%;       
+             top: 5%;    			          
+        }
+
+	</style>
+</head>
+
+<body>
+	<div id="menu">
+	</div>
+	<div id="gui_container"></div>
+
+	<script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+				}
+			}
+		</script>
+
+	<script type="module">
+		import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+		import * as THREE from 'three';
+		import { GUI } from './jsm/libs/lil-gui.module.min.js';
+		import { OrbitControls } from './jsm/controls/OrbitControls.js';
+
+		let camera, scene, renderer, cotainer;
+		let parameters;
+		let mouseX = 0, mouseY = 0;
+		let move = true;
+
+		let container;
+		let controls;
+		let windowHalfX = window.innerWidth / 2;
+		let windowHalfY = window.innerHeight / 2;
+
+		const materials = [];
+		let aantal = 1000;  // aantal sprites
+		let mesh = [];
+		let schaal = 1; let r = +1;   // object.scale.setScalar( 2 );
+		let k = 0;   // mesh nummer
+
+		init();
+		animate();
+
+		function init() {
+			maakMenu();
+			maakScene();
+			maakKubus();
+			kleurAchtergrond();
+			maakSprites();
+
+			maakGUI();
+
+			maakRenderer();
+
+
+			document.body.style.touchAction = 'none';
+			document.body.addEventListener('pointermove', onPointerMove);
+			document.body.addEventListener("pointerdown", pressingDown, false);
+			window.addEventListener('resize', onWindowResize);
+
+			startOrbitController();
+
+		}   // einde init()
+
+		function pressingDown(e) {
+			move = !move;
+			e.preventDefault();
+			// 	alert("PressingDown!" + ellips);
+		}
+
+		function onWindowResize() {
+
+			windowHalfX = window.innerWidth / 2;
+			windowHalfY = window.innerHeight / 2;
+
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize(window.innerWidth, window.innerHeight);
+
+		}
+
+		function onPointerMove(event) {
+			if (event.isPrimary === false) return;
+			mouseX = event.clientX - windowHalfX;
+			mouseY = event.clientY - windowHalfY;
+
+		}
+		// 	controls.enableZoom = true;
+
+		function animate() {
+			requestAnimationFrame(animate);
+			render();
+		}
+
+		function render() {
+
+			const time = Date.now() * 0.00005;
+
+			camera.position.x += (mouseX - camera.position.x) * 0.05;
+			camera.position.y += (- mouseY - camera.position.y) * 0.05;
+
+			camera.lookAt(scene.position);
+
+			if (mesh[3] != null) {
+
+				if (move)
+					schaal += 0.01 * r;
+				if (schaal > 5) r = -1;
+				if (schaal < 0.5) {
+					mesh[k].scale.setScalar(0.1);
+					r = 1;
+					k = (k + 1) % 4;
+				}
+
+				mesh[k].scale.setScalar(schaal);
+				if (move)
+					mesh[k].rotation.y += r * 0.01;
+				//	alert("scale" + schaal);     
+
+			}
+
+			for (let i = 0; i < scene.children.length; i++) {
+
+				const object = scene.children[i];
+
+				if (object instanceof THREE.Points && move) {
+					object.rotation.y = time * (i < 4 ? i + 1 : - (i + 1));
+				}
+			}
+
+			for (let i = 0; i < materials.length; i++) {
+				const color = parameters[i][0];
+
+				const h = (360 * (color[0] + time) % 360) / 360;
+				materials[i].color.setHSL(h, color[1], color[2]);
+
+			}
+
+			renderer.render(scene, camera);
+
+		}
+		function startOrbitController() {
+			controls = new OrbitControls(camera, renderer.domElement);
+			controls.addEventListener('change', render);
+			//    controls.listenToKeyEvents(window);    // pijltjes toetsen.
+			//   controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+			//   controls.dampingFactor = 0.05;
+
+			controls.minPolarAngle = +Math.PI * 0.4;     // tilt. , x as.            
+			controls.maxPolarAngle = Math.PI * 0.8;
+
+			controls.minAzimuthAngle = -Math.PI * 0.25;      // rot y as.
+			controls.maxAzimuthAngle = +Math.PI * 0.3;
+
+			// controls.target.set(0, 10, 0);
+			controls.minDistance = 1000.0;
+			controls.maxDistance = 2400.0;
+
+			controls.autoRotate = true;
+			controls.autoRotateSpeed = 4;   // 2 is default. 
+
+			controls.update();
+		}   // einde startOrbitControls.			
+
+		function maakMenu() {
+			let menu = document.getElementById("menu");
+			if (isTouchDevice())
+				menu.innerHTML = leesMenuTekst() + aantal + " Sprites. Touch to stop/start.";
+			else
+				menu.innerHTML = leesMenuTekst() + aantal + " Sprites. Move/Zoom with mouse or Press to stop/start.";
+
+			kleurActiveLink();
+		}
+
+		function maakScene() {
+			container = document.createElement('div');
+			document.body.appendChild(container);
+
+			document.getElementsByTagName("body")[0].style.cursor = "url('images/biglips.cur'), move";
+
+			camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000);
+			camera.position.z = 1000;
+
+			scene = new THREE.Scene();
+		}
+
+		function maakKubus() {
+			// png wordt transparent zwart!. Wit wordt tranparent....
+			// .PointsMaterial({ transparent: false }); 
+			for (let k = 0; k < 4; k++) {
+				let tex = new THREE.TextureLoader().load('images/koppen/kop' + (k + 1) + '.jpg');
+				let geo = new THREE.BoxGeometry(200, 200, 200);
+				let mat = new THREE.MeshBasicMaterial({ map: tex });
+
+				mesh[k] = new THREE.Mesh(geo, mat);
+				mesh[k].scale.setScalar(0.1);
+				scene.add(mesh[k]);
+			}
+		}  // einde kubus. 		
+
+		function kleurAchtergrond() {
+			let kleur = Math.floor(Math.random() * 3);
+			// alert(kleur);
+			kleur = 0;
+
+			switch (kleur) {
+				case 0:
+					scene.background = new THREE.Color(0xffffff);
+					break;
+				case 1:
+					scene.background = new THREE.Color(0xff0000);
+					break;
+				case 2:
+					scene.background = new THREE.Color(0x000000);
+			}
+
+			// scene.fog = new THREE.FogExp2(0x000000, 0.0008);
+		}
+
+
+		function maakRenderer() {
+			renderer = new THREE.WebGLRenderer();
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			container.appendChild(renderer.domElement);
+		}
+
+		function maakSprites() {
+
+			let geometry = new THREE.BufferGeometry();
+
+			const vertices = [];
+
+			const textureLoader = new THREE.TextureLoader();
+			let pad = "images/koppen/"; let ext = '.jpg';
+			const sprite1 = textureLoader.load(pad + 'kop1' + ext);
+			const sprite2 = textureLoader.load(pad + 'kop2' + ext);
+			const sprite3 = textureLoader.load(pad + 'kop3' + ext);
+			const sprite4 = textureLoader.load(pad + 'kop4' + ext);
+			//	const sprite5 = textureLoader.load(pad + 'kop1.jpg');
+
+			for (let i = 0; i < aantal; i++) {
+
+				const x = Math.random() * 2000 - 1000;
+				const y = Math.random() * 2000 - 1000;
+				const z = Math.random() * 2000 - 1000;
+
+				vertices.push(x, y, z);
+
+			}
+
+			geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+
+			parameters = [
+				[[1.0, 0.2, 0.5], sprite1, 20],
+				[[0.95, 0.1, 0.5], sprite2, 15],
+				[[0.90, 0.05, 0.5], sprite3, 10],
+				[[0.85, 0, 0.5], sprite4, 8],
+			];
+			/*
+							parameters = [
+								[[1.0], sprite1, 10],
+								[[1.0], sprite2, 20],
+								[[1.0], sprite3, 10],
+								[[1.0], sprite4, 20],
+							];    */
+
+			for (let i = 0; i < parameters.length; i++) {
+
+				const color = 0;   //parameters[i][0];
+				const sprite = parameters[i][1];
+				const size = 20;  // parameters[i][2];
+
+				//	materials[i] = new THREE.PointsMaterial({ size: size, map: sprite, blending: THREE.AdditiveBlending, depthTest: false, transparent: false });
+				materials[i] = new THREE.PointsMaterial({ size: size, map: sprite, depthTest: false, transparent: false });
+				//materials[i] = new THREE.PointsMaterial({ size: size, map: sprite});
+				materials[i].color.setHSL(color[0], color[1], color[2]);
+
+
+				const particles = new THREE.Points(geometry, materials[i]);
+
+				particles.rotation.x = Math.random() * 6;
+				particles.rotation.y = Math.random() * 6;
+				particles.rotation.z = Math.random() * 6;
+
+				scene.add(particles);
+
+			}
+		}  // einde sprites. 	
+
+		function maakGUI() {
+			// const gui = new GUI({ autoPlace: true });
+			const gui = new GUI({ autoPlace: true, title: 'Texture' });  // evt width: 150 	
+			gui.domElement.id = 'gui';
+			let gui_container = document.getElementById('gui_container');
+			gui_container.appendChild(gui.domElement);  			
+
+			const params = {
+				texture: true
+			};
+
+			gui.add(params, 'texture').onChange(function (value) {
+
+				for (let i = 0; i < materials.length; i++) {
+					materials[i].map = (value === true) ? parameters[i][1] : null;
+					materials[i].needsUpdate = true;
+				}
+			});
+		//	gui.open();
+		}
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>3D Text Following a path with Threejs. </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D models, Threejs, Ceramics">
+    <!--  https://sourceforge.net/projects/three-js.mirror/  -->
+    <meta name="description" content="Showing 3D text following a line, using ThreeJS.">
+
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="css/menu.css">
+
+    <!-- 
+https://threejs.org/examples/#webgl_modifier_curve 
+-->
+</head>
+
+<body>
+    <div id="menu">
+        <p>Hier komt dynamisch het menu.</p>
+    </div>
+
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+        import { Flow } from 'three/addons/modifiers/CurveModifier.js';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+        import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+
+        const curveHandles = [];
+        const koppen = [];
+        const mouse = new THREE.Vector2();
+        let richting = +1;
+        let textMesh;
+        const mess1 = "Keramieke Beelden van Marjan.";
+        const mess2 = "'Just fun............'";
+        const mess3 = "Train is moving again.";
+
+        let container, menu;
+        let scene, camera, renderer,
+            kop, clone, groep,
+            lightd, lightHolder,
+            rayCaster,
+            control,
+            controls,  // orbitcontroller              
+            curve, line, initialPoints, flow;
+
+        init();
+
+        function init() {
+            maakMenu();
+            maakScene();
+            maakBelichting();
+            maakTekst(mess1);
+            laadModel();
+
+            maakRenderer();
+            maakInitialPoints();
+            maakCurve();
+            controlDrag();
+
+            window.addEventListener('resize', onWindowResize);
+            startOrbitController();
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+        }   // end init. 
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onPointerDown(event) {
+            event.preventDefault();
+            controls.enabled = false;
+ 
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = - (event.clientY / window.innerHeight) * 2 + 1.1;   // +1     
+
+            rayCaster.setFromCamera(mouse, camera);
+            berekenIntersection();
+        }
+
+        function animate() {
+            if (flow) {
+                flow.moveAlongCurve(richting * 0.001);
+            }
+            lightHolder.quaternion.copy(camera.quaternion);
+            render();
+        }
+
+        function render() {
+            if (clone != null && kop != null) {
+                clone.rotation.z += richting * 0.01;
+                kop.rotation.z += richting * 0.01;
+            }
+            renderer.render(scene, camera);
+        }
+        function maakScene() {
+            scene = new THREE.Scene();
+            // scene.background = new THREE.Color(0x003300);
+
+            camera = new THREE.PerspectiveCamera(
+                40,
+                window.innerWidth / window.innerHeight,
+                1,
+                1000
+            );
+            camera.position.set(2, 2, 4);
+            camera.lookAt(scene.position);
+        }
+        function maakRenderer() {
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setAnimationLoop(animate);
+            document.body.appendChild(renderer.domElement);
+            //    container.appendChild(renderer.domElement);
+        }
+
+        function maakBelichting() {
+            let intens = 3;
+            const lighta = new THREE.AmbientLight(0x003973, intens);
+            scene.add(lighta);
+
+            lightd = new THREE.DirectionalLight(0xffaa33, intens * 4);
+            lightd.position.set(- 0, 0, 10);
+            lightHolder = new THREE.Group();
+            lightHolder.add(lightd);
+            scene.add(lightHolder);
+        }
+
+        function maakTekst(mess) {
+            if (textMesh != null) {
+                //scene.remove(textMesh);
+                scene.remove(flow.object3D);
+            }
+
+            //  alert(mess);
+            const loader = new FontLoader();
+            loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
+
+                const textgeometry = new TextGeometry(mess, {
+
+                    font: font,
+                    size: 0.2,
+                    depth: 0.05,
+                    curveSegments: 12,
+                    bevelEnabled: true,
+                    bevelThickness: 0.02,
+                    bevelSize: 0.01,
+                    bevelOffset: 0,
+                    bevelSegments: 5,
+                }
+                );    // end loader.load
+
+                textgeometry.rotateX(Math.PI);
+
+                const textmaterial2 = new THREE.MeshStandardMaterial({
+                    color: 0x99ffff
+                });
+                const textmaterial = new THREE.MeshPhongMaterial({
+                    color: 0x228822,
+                    shininess: 220,    //  standaard 30 
+                    emissive: 0x002200,   // 'darkgreen'
+                    specular: 0x00f500,
+                });  // end materiaal
+
+                textMesh = new THREE.Mesh(textgeometry, textmaterial);
+
+                flow = new Flow(textMesh);
+                flow.updateCurve(0, curve);
+                scene.add(flow.object3D);
+            });
+        }  // end maakTekst
+
+        function maakInitialPoints() {
+            initialPoints = [
+                { x: 1, y: 0, z: - 1 },
+                { x: 1, y: 0, z: 1 },
+                { x: - 1, y: 0, z: 1 },
+                { x: - 1, y: 0, z: - 1 },
+            ];
+        }
+
+        function maakBol() {
+            let radius = 0.2;
+            const sphereGeometry = new THREE.SphereGeometry(radius, 16, 32);
+            const sphereMaterial = new THREE.MeshPhongMaterial({
+                color: 0x22a522,
+                shininess: 200,    //  standaard 30 
+                emissive: 0x224422,   // 'darkgreen'
+                specular: 0x004400
+            });
+            return new THREE.Mesh(sphereGeometry, sphereMaterial);
+        }
+        function maakCurve() {
+            for (const handlePos of initialPoints) {
+                const bol = maakBol();
+                bol.position.copy(handlePos);
+                curveHandles.push(bol);
+                scene.add(bol);
+            }
+
+            curve = new THREE.CatmullRomCurve3(
+                curveHandles.map((handle) => handle.position)
+            );
+            curve.curveType = 'centripetal';
+            curve.closed = true;
+
+            const points = curve.getPoints(50);
+            line = new THREE.LineLoop(
+                new THREE.BufferGeometry().setFromPoints(points),
+                new THREE.LineBasicMaterial({ color: 0x00ff00 })
+            );
+
+            scene.add(line);
+        }
+
+        function startOrbitController() {
+            controls = new OrbitControls(camera, renderer.domElement);
+
+            controls.addEventListener('change', render);
+
+            controls.minPolarAngle = - Math.PI * 0.35;     // tilt. , x as.            
+            controls.maxPolarAngle = + Math.PI * 0.9;         // Math.PI * 0.6;
+
+            controls.minAzimuthAngle = -Math.PI * 0.25;      // rot y as.
+            controls.maxAzimuthAngle = -Math.PI * 0.45;    //  0.4
+
+            //    controls.enableRotate = false;
+
+            //controls.target.set(0, 10, 0);
+            controls.minDistance = 1.0;
+            controls.maxDistance = 400.0;
+            controls.update();
+        }
+        function laadModel() {
+            let pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+            let model = pad + 'bladerKop.glb';
+            //  console.log("model: " + model)
+            const loader = new GLTFLoader();
+
+            loader.load(model, function (gltf) {
+                kop = gltf.scene.children[0];
+                kop.position.y = 0;
+                kop.position.z = 0;
+                let s = 0.03;
+                kop.scale.x = kop.scale.y = kop.scale.z = s;
+                scene.add(kop);
+
+                clone = kop.clone();
+                clone.scale.x = s;
+                // clone.rotateZ =  Math.PI ;   // werkt niet. 
+                clone.rotation.z = Math.PI;
+
+                clone.position.z = 0.03;
+                groep = new THREE.Group();
+                groep.add(clone);
+                groep.add(kop);
+                scene.add(groep);
+                koppen.push(groep);
+            },
+                // called while loading is progressing
+                function (xhr) {
+                    ;
+                    // 	console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                // called when loading has errors
+                function (error) {
+                    console.log('O, 0 An error happened during loading');
+                    if (location.hostname == "localhost")
+                        alert('O, 0 An error happened during loading');
+                }
+            );    // einde loader
+        }   // einde laadModel   
+
+        function maakMenu() {
+            let menu = document.getElementById("menu");
+            if (isTouchDevice())
+                menu.innerHTML = leesMenuTekst() + "Rotating text. Zoom or Touch a sphere with finger to move path.";
+            else
+                menu.innerHTML = leesMenuTekst() + "Rotating Text - Press Mouse Left to select a sphere and move path.";
+
+            kleurActiveLink();
+
+            container = document.createElement('div');
+            document.body.appendChild(container);
+        }
+        function controlDrag() {
+            rayCaster = new THREE.Raycaster();
+            control = new TransformControls(camera, renderer.domElement);
+            control.addEventListener('dragging-changed', function (event) {
+
+                if (!event.value) {
+                    const points = curve.getPoints(50);
+                    line.geometry.setFromPoints(points);
+                    flow.updateCurve(0, curve);
+                }
+            });
+        }   // einde controlDrag. 
+
+        function berekenIntersection() {
+            let intersects = rayCaster.intersectObjects(curveHandles, false);
+            let intersectKop = rayCaster.intersectObjects(koppen, true);
+
+            if (intersects.length) {
+                const target = intersects[0].object;
+                control.attach(target);
+                //    control.attach(kop);
+                scene.add(control.getHelper());
+                maakTekst(mess3);
+            }
+            else if (intersectKop.length) {
+                //    alert("Raak op Kop"); 
+                const target = intersectKop[0].object;
+                control.attach(target);
+                //    control.attach(kop);
+                control.attach(groep);
+                scene.add(control.getHelper());
+                maakTekst(mess2);
+            }
+            else if (control.getHelper() != null) {
+                scene.remove(control.getHelper());
+                richting = -richting;
+                controls.enabled = true;
+            }
+        }      
+    </script>
+</body>
+
+</html>

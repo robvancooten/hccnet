@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>3D Text Climbing Tower, Following a path with Threejs. </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D models, Threejs, Ceramics">
+    <!--  https://sourceforge.net/projects/three-js.mirror/  -->
+    <meta name="description" content="Showing 3D text, climbing tower, following a line, using ThreeJS.">
+
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="css/menu.css">
+
+    <!-- 
+https://threejs.org/examples/#webgl_modifier_curve  
+Flow mt glb file: https://discourse.threejs.org/t/flows-glb-file-in-curve-modifier/49847 
+-->
+
+</head>
+
+<body>
+    <div id="menu">
+        <p>Hier komt dynamisch het menu.</p>
+    </div>
+
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+        import { Flow } from 'three/addons/modifiers/CurveModifier.js';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+        import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+        import Stats from './jsm/libs/stats.module.js';
+
+        const curveHandles = [];
+        const koppen = [];
+        const mouse = new THREE.Vector2();
+        let richting = +1;
+        let textMesh;
+        const mess = "Tower of babylon.";
+
+        let container, menu;
+        let scene, camera, renderer,
+            kop, clone, groep,
+            rayCaster,
+            control,
+            controls;  // orbitcontroller     
+        const stats = new Stats();
+
+        let curve, line, flow;
+        const initialPoints = [];
+
+        let obj1, obj2, obj3, obj4;
+
+        let m = 0;
+
+        init();
+
+        function init() {
+            maakMenu();
+            maakScene();
+            maakBelichting();
+            //  maakPointLight();
+            maakTekst(mess);
+            laadModel();
+
+            maakInitialPoints();
+            maakCurve();
+
+            maakRenderer();
+
+            window.addEventListener('resize', onWindowResize);
+            startOrbitController();   // moet eerst. 
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+
+        }   // end init. 
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onPointerDown(event) {
+            richting = -richting;
+        }
+
+        function animate() {
+            if (flow) {
+                flow.moveAlongCurve(richting * 0.001);
+            }
+            render();
+        }
+
+        function render() {
+            stats.update();
+            if (clone != null && kop != null) {
+                clone.rotation.z += richting * 0.01;
+                kop.rotation.z += richting * 0.01;
+            }
+            renderer.render(scene, camera);
+        }
+        function maakScene() {
+            scene = new THREE.Scene();
+            // scene.background = new THREE.Color(0x003300);
+
+            camera = new THREE.PerspectiveCamera(
+                40,
+                window.innerWidth / window.innerHeight,
+                1,
+                1000
+            );
+            camera.position.set(2, 2, 15);
+            camera.lookAt(scene.position);
+        }
+        function maakRenderer() {
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setAnimationLoop(animate);
+            document.body.appendChild(renderer.domElement);
+            if (location.hostname == "localhost"){
+                document.body.appendChild(stats.dom);
+                stats.dom.style.position = 'absolute';
+                stats.dom.style.top = '150px';
+                stats.dom.style.left = "80%" ;                
+            }
+        }
+
+        function maakBelichting() {
+            let intens = 3;
+            const lighta = new THREE.AmbientLight(0xaa3973, intens);
+            scene.add(lighta);
+
+            intens = 60;
+            const lightd = new THREE.DirectionalLight(0xaaff55, intens);  // 0xaaaa33
+            lightd.position.set(- 0, 0, 10);
+            scene.add(lightd);
+
+            const lightd2 = new THREE.DirectionalLight(0xff00ff, intens);  // 0xaaaa33
+            lightd2.position.set(- 0, 0, -10);
+            scene.add(lightd2);
+        }
+
+        function maakTekst(mess) {
+            if (textMesh != null) {
+                //scene.remove(textMesh);
+                scene.remove(flow.object3D);
+            }
+            //  alert(mess);
+            const loader = new FontLoader();
+            loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
+
+                const textgeometry = new TextGeometry(mess, {
+
+                    font: font,
+                    size: 0.5,
+                    depth: 0.05,
+                    curveSegments: 12,
+                    bevelEnabled: true,
+                    bevelThickness: 0.02,
+                    bevelSize: 0.01,
+                    bevelOffset: 0,
+                    bevelSegments: 5,
+                }
+                );    // end loader.load
+
+                textgeometry.rotateX(Math.PI);
+
+                const textmaterial2 = new THREE.MeshStandardMaterial({
+                    color: 0x99ffff
+                });
+                const textmaterial = new THREE.MeshPhongMaterial({
+                    color: 0x228822,
+                    shininess: 220,    //  standaard 30 
+                    emissive: 0x002200,   // 'darkgreen'
+                    specular: 0x00f500,
+                });  // end materiaal
+
+                textMesh = new THREE.Mesh(textgeometry, textmaterial);
+                maakFlow();
+            });
+        }  // end maakTekst
+
+        function maakFlow() {
+            flow = new Flow(textMesh);
+            flow.updateCurve(0, curve);
+            scene.add(flow.object3D);
+        }
+
+        function maakInitialPoints() {
+            maakBodem();
+            maakBodem();
+            let aantal = 5;
+            for (let k = 0; k < aantal; k++) {
+                obj1 = { x: + 1, y: k - 2.00, z: - 1 };
+                obj2 = { x: + 1, y: k + 0.25 - 2, z: + 1 };
+                obj3 = { x: - 1, y: k + 0.50 - 2, z: + 1 };
+                obj4 = { x: - 1, y: k + 0.75 - 2, z: - 1 };
+
+                initialPoints.push(obj1);
+                initialPoints.push(obj2);
+                initialPoints.push(obj3);
+                initialPoints.push(obj4);
+            }
+            maakDak();
+            maakDak();
+        }
+
+        function maakBodem() {
+            let k = -3;
+            obj1 = { x: + 1, y: k, z: - 1 };
+            obj2 = { x: + 1, y: k, z: + 1 };
+            obj3 = { x: - 1, y: k, z: + 1 };
+            obj4 = { x: - 1, y: k, z: - 1 };
+
+            initialPoints.push(obj1);
+            initialPoints.push(obj2);
+            initialPoints.push(obj3);
+            initialPoints.push(obj4);
+        }
+
+        function maakDak() {
+            let k = +3;
+            obj1 = { x: + 1, y: k, z: - 1 };
+            obj2 = { x: + 1, y: k, z: + 1 };
+            obj3 = { x: - 1, y: k, z: + 1 };
+            obj4 = { x: - 1, y: k, z: - 1 };
+
+            initialPoints.push(obj1);
+            initialPoints.push(obj2);
+            initialPoints.push(obj3);
+            initialPoints.push(obj4);
+        }
+
+        function maakBol() {
+            let radius = 0.2;
+            const sphereGeometry = new THREE.SphereGeometry(radius, 16, 32);
+
+            const ssphereMaterial = new THREE.MeshPhongMaterial({
+                color: 0x22a522,
+                shininess: 200,    //  standaard 30 
+                emissive: 0x225522,   // 'darkgreen'
+                specular: 0x004400,
+                emissiveIntensity: 10
+            });
+
+            const textuur = new THREE.TextureLoader().load('images/blad.jpg');
+            const bumpTexture = new THREE.TextureLoader().load('images/blad_bump.jpg');
+
+            const sphereMaterial = new THREE.MeshPhongMaterial({
+                map: textuur,
+                color: 0x228822,
+                shininess: 220,    //  standaard 30 
+                //  side: THREE.FrontSide,
+                side: THREE.DoubleSide,
+                // metalness: 0.5,   niet voor dit materiaal
+                emissive: 0x225522,   // 'darkgreen'
+                emissiveIntensity: 0,
+                specular: 0x001500,
+                reflectivity: 1.0,   // doet niet veel.
+                // The valid range is between 0 (no reflections) and 1 (full reflections).
+                transparent: true,
+                opacity: 1, // 0 is transparant, 1 opaque.                  
+                bumpMap: bumpTexture,
+                bumpScale: 150   // 1.5 
+                // How much the bump map affects the material. Typical range is [0,1].
+            });
+            return new THREE.Mesh(sphereGeometry, sphereMaterial);
+        }
+
+        function maakOmhulling() {
+            let radius = 0.5;
+            const sphereGeometry = new THREE.SphereGeometry(radius, 4, 8);
+
+            const sphereMaterial = new THREE.MeshPhongMaterial({
+                color: 0x00ff00,
+                transparent: true,
+                opacity: 0.4, // 0 is transparant, 1 opaque.                   
+
+            });
+            let omhulling = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            omhulling.position.y = 0.1;
+            scene.add(omhulling);
+        }
+
+        function maakPointLight() {
+            // new PointLight( color : number | Color | string, intensity : number, distance :
+            const plight = new THREE.PointLight(0xff00ff, 1000, 100);
+            plight.position.set(2, 1, 1);
+            scene.add(plight);
+            return plight;
+        }
+
+        function maakCurve() {
+            for (const handlePos of initialPoints) {
+                m = m + 10;
+                const bol = maakBol();
+                bol.position.copy(handlePos);
+                curveHandles.push(bol);
+                scene.add(bol);
+            }
+
+            curve = new THREE.CatmullRomCurve3(
+                curveHandles.map((handle) => handle.position)
+            );
+            curve.curveType = 'centripetal';
+            curve.closed = true; // true;
+
+            const points = curve.getPoints(500);  // 50
+            line = new THREE.LineLoop(
+                new THREE.BufferGeometry().setFromPoints(points),
+                new THREE.LineBasicMaterial({ color: 0x00ff00 })
+            );
+
+            scene.add(line);
+        }
+
+        function startOrbitController() {
+            controls = new OrbitControls(camera, renderer.domElement);
+
+            controls.addEventListener('change', render);
+
+            //    controls.minPolarAngle = -Math.PI * 0.8;     // tilt. , x as.            
+            //    controls.maxPolarAngle = +Math.PI * 0.8;         // Math.PI * 0.6;
+
+            //    controls.minAzimuthAngle = -Math.PI * 0.15;      // rot y as.
+            //    controls.maxAzimuthAngle = -Math.PI * 0.55;    //  0.4
+
+            //  controls.enableRotate = true;
+
+            //controls.target.set(0, 10, 0);
+            controls.minDistance = 1.5;
+            controls.maxDistance = 400.0;
+            controls.update();
+        }
+        function laadModel() {
+            let pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+            let model = pad + 'bladerKop.glb';
+            //  console.log("model: " + model)
+            const loader = new GLTFLoader();
+
+            loader.load(model, function (gltf) {
+                kop = gltf.scene.children[0];
+                kop.position.y = 0;
+                kop.position.z = 0;
+                let s = 0.03;
+                kop.scale.x = kop.scale.y = kop.scale.z = s;
+                scene.add(kop);
+
+                clone = kop.clone();
+                clone.scale.x = s;
+                // clone.rotateZ =  Math.PI ;   // werkt niet. 
+                clone.rotation.z = Math.PI;
+
+                clone.position.z = 0.03;
+                groep = new THREE.Group();
+                groep.add(clone);
+                groep.add(kop);
+                scene.add(groep);
+                koppen.push(groep);
+
+                maakOmhulling();
+            },
+                // called while loading is progressing
+                function (xhr) {
+                    ;
+                    // 	console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                // called when loading has errors
+                function (error) {
+                    console.log('O, 0 An error happened during loading');
+                    if (location.hostname == "localhost")
+                        alert('O, 0 An error happened during loading');
+                }
+            );    // einde loader
+        }   // einde laadModel   
+
+        function maakMenu() {
+            let menu = document.getElementById("menu");
+            if (isTouchDevice())
+                menu.innerHTML = leesMenuTekst() + "Rotating text. Use two fingers to Zoom or Touch to move reverse.";
+            else
+                menu.innerHTML = leesMenuTekst() + "Rotating Text - Zoom/Drag Tower or Press Mouse Left to move reverse.";
+
+            kleurActiveLink();
+
+            container = document.createElement('div');
+            document.body.appendChild(container);
+        }
+    </script>
+</body>
+
+</html>

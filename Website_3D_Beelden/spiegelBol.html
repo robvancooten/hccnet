@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Spiegelende Bol.</title>
+  <meta charset="utf-8">
+  <!-- 
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		-->
+  <meta name="author" content=" Rob van Cooten. Waalre. ">
+  <!--   http://localhost/www/hccnet/Website_3D_Beelden/spiegelBol.html   -->
+  <meta name="keywords" content="3D models, Threejs, Ceramics">
+	<!--   http://localhost/www/hccnet/Website_3D_Beelden/spiegelBol2.html   -->  
+  <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+  <link type="text/css" rel="stylesheet" href="css/main.css">
+  <link href="css/menu.css" rel="stylesheet" type="text/css">
+  <link rel="shortcut icon" href="./images/ernie.ico">
+  <style>
+    body {
+      cursor: url(./images/biglips.cur), auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="menu">
+
+  </div>
+
+  <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+				}
+			}
+		</script>
+
+  <script type="module">
+
+		import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+		import * as THREE from 'three';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';    
+
+  			maakMenu();  
+
+// basic setup
+let controls; 
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 0, 5);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// load an environment map (cube texture)
+const loader = new THREE.CubeTextureLoader();
+const envMap = loader.load([
+  './images/skybox/woman1.jpg', './images/skybox/woman1.jpg',
+  './images/skybox/woman1.jpg', './images/skybox/woman1.jpg',
+  './images/skybox/woman1.jpg', './images/skybox/woman1.jpg'
+]);
+
+scene.background = envMap;
+scene.environment = envMap; // important for PBR materials
+
+// mirror material sphere
+const geometry = new THREE.SphereGeometry(10, 64, 64);
+const material = new THREE.MeshStandardMaterial({
+  metalness: 1.0,   // full metal
+  roughness: 0.0,   // perfectly smooth → mirror-like
+  envMap: envMap
+});
+
+const sphere = new THREE.Mesh(geometry, material);
+scene.add(sphere);
+
+// a light (not strictly needed with envMap, but helps)
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5, 5, 5);
+scene.add(light);
+
+startOrbitController();
+
+animate();            
+
+
+
+function animate() {
+  requestAnimationFrame(animate);
+  sphere.rotation.y += 0.001;
+  renderer.render(scene, camera);
+  controls.update();
+}
+function render(){
+    renderer.render(scene, camera);
+}
+
+
+
+
+		function maakMenu() {
+
+			let menu = document.getElementById("menu");
+			if (isTouchDevice())
+				menu.innerHTML = leesMenuTekst() + "Mermaid Ceramics. Use fingers to rotate, zoom. Touch to stop.";
+			else
+				menu.innerHTML = leesMenuTekst() + "Mermaid Ceramics. Use mouse to rotate, start/stop. Wheel to zoom. Or arrow keys 2move. ";
+
+      /*  
+			if (location.hostname == "localhost") {
+				pad = "./modellen/glb/";
+				//  alert() ; 
+			}
+			else
+				pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+			// 	pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+      */
+
+			kleurActiveLink();
+
+		//	container = document.createElement('div');
+	//		document.body.appendChild(container);
+		}  
+
+    function startOrbitController() {
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.addEventListener('change', render);
+
+            controls.minPolarAngle = Math.PI * 0.35;     // tilt. , x as.            
+            controls.maxPolarAngle = Math.PI * 0.35;                   // 0.6;
+
+            //   controls.minAzimuthAngle = -Math.PI * 0.25;      // rot y as.
+            //   controls.maxAzimuthAngle = Math.PI * 0.4;
+
+            //   controls.target.set(0, 10, 0);
+            controls.minDistance = 40.0;
+            controls.maxDistance = 800.0;
+
+            controls.autoRotate = false;
+            controls.autoRotateSpeed = -1;   // 2 is default. 
+            controls.update();
+        }    
+</script>
+</body>
+</html>

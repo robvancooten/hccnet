@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!--   <meta http-equiv="refresh" content="5">   -->
+    <title>ff een rust momentje.....</title>
+    <meta charset="utf-8">
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D models, Threejs, Ceramics">
+    <!--  https://sourceforge.net/projects/three-js.mirror/  -->
+    <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link href="css/menu.css" rel="stylesheet" type="text/css">
+    <link rel="shortcut icon" href="./images/ernie.ico">
+    <style>
+        body {
+            /*  cursor:none;    */
+            cursor: url(./images/biglips.cur), auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="menu">
+        <!-- tekst dynamisch-->
+    </div>
+    <div id="container"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+        import * as THREE from 'three';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+        import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+
+        var scene, camera, renderer;
+        const clones = [];
+        const aantal = 8;
+
+        let skybox;
+        let controls;
+        let breedte = 10 * 1000;
+        let directionalLight;
+        // flamingo: 
+        var flamingo, mesh;
+        var birdHolder;
+        const mixers = [];
+        const clock = new THREE.Clock();
+        let delta = 0.003;
+
+        /*****************  voor mist    ***************/
+        const maxMist = 0.3 / 1000;
+        let f = maxMist;   // VEEL mist 
+        let teller = 0;
+        let rot;
+        let r = +1;        
+
+        init();          
+
+        function init() {
+            maakMenu();
+            maakScene();
+            maakBelichting();
+
+            maakSkybox();
+            laadFlamingo();
+
+
+            maakRenderer();
+
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+            startOrbitControls();
+
+            animate();
+
+        }   // einde init
+
+
+
+        function onWindowResize() {
+
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+        }
+        function animate() {
+            requestAnimationFrame(animate);
+            //   if (f < 0);
+            //   controls.update(); // only required if controls.enableDamping = true
+
+            const delta = clock.getDelta();
+            for (let i = 0; i < mixers.length; i++) {
+                mixers[i].update(delta);
+            }
+            if (birdHolder != null)
+                birdHolder.quaternion.copy(camera.quaternion);
+            //   directionalLight.quaternion.copy(camera.quaternion);
+            render();
+        }
+        //   einde animate. 
+
+        function render() {
+            if (skybox != null) {
+                skybox.rotation.y += delta;
+                rot = skybox.rotation.y;
+                // console.log("rot: " + rot );
+            }
+
+            teller++;
+            //  console.log("teller: " + teller); 
+            if (teller % 10 == 0)    // mist afnemen tot onder 0, 
+                f = f - 0.05 / (10 * 1000) * r;
+            // f= 3 / (10*1000);
+            //  scene.fog = new THREE.FogExp2(0x556555, f);   // standaard mist
+            // .density : Float.  Defines how fast the fog will grow dense. Default is 0.00025.
+            // 0 Geen mist. 
+
+            if (f < 0)
+                r = -1;
+            if (f > maxMist)
+                r = +1;
+
+            //   scene.fog = new THREE.FogExp2(0x888888, rot / (10 * 1000));
+            //   console.log("rotatie: " + rot);  
+
+            if (flamingo != null) {
+                flamingo.position.x = - 100;
+                let posY = 150 + 100 * Math.sin(rot);
+                flamingo.position.y = posY;
+
+                if (delta > 0) {
+                    flamingo.scale.set(-1, 1, -1);
+                    for (let k = 0; k < aantal; k++) {
+                        clones[k].scale.set(-1, 1, -1);
+                    }
+                }
+                else {
+                    flamingo.scale.set(+1, 1, 1);
+                    for (let k = 0; k < aantal; k++) {
+                        clones[k].scale.set(1, 1, 1);
+                    }
+                    console.log("delta: " + delta);
+                }
+
+                //  birdHolder.position.y =  2*posY;     
+                // directionalLight.target = flamingo;             
+            }
+
+            //  console.log("f: " + f)
+            renderer.render(scene, camera);
+        }
+
+        function startOrbitControls() {
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.addEventListener('change', render);
+            controls.listenToKeyEvents(window);    // pijltjes toetsen.
+
+            //    controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+            //    controls.dampingFactor = 0.05;
+
+            controls.minPolarAngle = Math.PI / 2;     // tilt. , x as.            
+            controls.maxPolarAngle = Math.PI / 2;
+            // controls.lookVertical = true;
+            //  controls.minAzimuthAngle = Math.PI;
+            //  controls.maxAzimuthAngle = Math.PI;
+            //    controls.target.set(0, 10, 0);
+
+            controls.minDistance = breedte * 0.05;    // 500 
+            controls.maxDistance = breedte * 2;   // 1500
+
+            //   controls.autoRotate = true;
+            //   controls.autoRotateSpeed = 1;   // 2 is default. 
+            controls.update();
+        }
+
+        function maakSkybox() {
+            // texturen laden: 
+            let texture_ft = new THREE.TextureLoader().load('./images/skybox/1.jpg');
+            let texture_dn = new THREE.TextureLoader().load('./images/skybox/2.jpg');
+
+            /* let texture_ft = new THREE.TextureLoader().load('./images/skybox/1.jpg');
+               let texture_bk = new THREE.TextureLoader().load('./images/skybox/1.jpg');
+               let texture_up = new THREE.TextureLoader().load('./images/skybox/1.jpg');
+               let texture_dn = new THREE.TextureLoader().load('./images/skybox/2.jpg');
+               let texture_rt = new THREE.TextureLoader().load('./images/skybox/2.jpg');
+               let texture_lf = new THREE.TextureLoader().load('./images/skybox/2.jpg');   */
+
+            // MeshBasicMaterial, MeshPhongMaterial and MeshPhongMaterial.
+
+            // let matft = new THREE.MeshPhongMaterial({ map: texture_ft });
+            const matft = new THREE.MeshPhongMaterial({
+                map: texture_ft,
+                color: 0xffffff,     //  0x228822,
+                shininess: 220,    //  standaard 30 
+                side: THREE.FrontSide,
+                // metalness: 0.5,   niet voor dit materiaal
+                emissive: 0x001100,   // 'darkgreen'
+                specular: 0x001500,
+                reflectivity: 1.0   // doet niet veel
+            });
+
+            //  let matft = new THREE.MeshLambertMaterial({ map: texture_ft });      
+            const bumpTexture1 = new THREE.TextureLoader().load('images/skybox/1_bump.jpg');
+            matft.bumpmap = bumpTexture1;
+            matft.bumpScale = 15.5;
+
+            let matdn = new THREE.MeshPhongMaterial({ map: texture_dn });
+            //    let matdn = new THREE.MeshLambertMaterial({ map: texture_dn });
+            const bumpTexture2 = new THREE.TextureLoader().load('images/skybox/2_bump.jpg');
+            matdn.bumpmap = bumpTexture1;
+            matdn.bumpScale = 1.5;
+
+            let materialArray = [];
+
+            materialArray.push(matft);
+            materialArray.push(matft);
+            materialArray.push(matft);
+            materialArray.push(matdn);
+            materialArray.push(matdn);
+            materialArray.push(matdn);
+            //    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_bk }));
+            //    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_up }));
+            //    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_dn }));
+            //    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_rt }));
+            //    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_lf }));
+
+
+            for (let i = 0; i < 6; i++)
+                materialArray[i].side = THREE.BackSide;
+
+            let skyboxGeo = new THREE.BoxGeometry(breedte, breedte, breedte);
+            skybox = new THREE.Mesh(skyboxGeo, materialArray);
+            scene.add(skybox);
+        }   // einde maakSkybox. 
+
+        function laadFlamingo() {
+            // flamingo: 
+            const loader = new GLTFLoader();
+
+            loader.load('modellen/Flamingo.glb', function (gltf) {
+
+                flamingo = gltf.scene.children[0];
+
+                const s = 0.25;
+                flamingo.scale.set(s, s, -s);
+                flamingo.rotation.y = - Math.PI / 2;
+
+                flamingo.castShadow = true;
+                flamingo.receiveShadow = true;
+                // scene.add(flamingo);
+
+                birdHolder = new THREE.Group();
+                birdHolder.add(flamingo);
+                scene.add(birdHolder);
+                //  birdHolder.quaternion.copy(camera.quaternion); // in the animation loop
+
+                for (let k = 0; k < aantal; k++) {
+                    clones[k] = flamingo.clone();
+
+                    if (k < 3) {
+                        clones[k].position.x = - breedte / 20;  // 440; //  * k - 45;
+                        clones[k].position.y = breedte / 80 * k + 70;
+                    }
+                    else {
+                        clones[k].position.x = - breedte / 10;
+                        clones[k].position.y = breedte / 80 * k - 3 * 140;
+                    }
+
+                    clones[k].rotation.y = - Math.PI / 2;
+
+                    let mixerclone = new THREE.AnimationMixer(clones[k]);
+                    mixerclone.clipAction(gltf.animations[0]).setDuration(1).play();
+                    mixers.push(mixerclone);
+
+                    birdHolder.add(clones[k]);
+                    // scene.add(clones[k]);
+                }   // einde for loop 
+                const mixer = new THREE.AnimationMixer(flamingo);
+                mixer.clipAction(gltf.animations[0]).setDuration(1).play();
+                mixers.push(mixer);
+            });
+        }
+
+        function maakBelichting() {
+            //   const ambientLight = new THREE.AmbientLight(0x00cccc, 0.9);
+            //   scene.add(ambientLight);
+
+            //   const pointLight = new THREE.PointLight(0xff0000, 100.8);
+            //   camera.add(pointLight);
+            const int = 0.8;
+            let directionalLightC = new THREE.DirectionalLight(0xffffff, int);
+            directionalLightC.position.set(0, -0, -0.5 * breedte);  // dan draait die mee. 
+
+            scene.add(directionalLightC);
+
+
+            let directionalLightR = new THREE.DirectionalLight(0xffffff, int);
+            directionalLightR.position.set(0.5 * breedte, -0, -0.5 * breedte);  // dan draait die mee. 
+            scene.add(directionalLightR);
+
+            let directionalLightL = new THREE.DirectionalLight(0xffffff, int);
+            directionalLightL.position.set(-0.5 * breedte, -0, -0.5 * breedte);  // dan draait die mee. 
+            scene.add(directionalLightL);
+
+            //  directionalLight2.target = flamingo;
+
+            // kleuren flamingo: 
+            const dirLight = new THREE.DirectionalLight(0xffffff, 5);
+            dirLight.color.setHSL(0.1, 1, 0.95);
+            dirLight.position.set(- 1, 1.75, 1);
+            dirLight.position.multiplyScalar(30);
+            scene.add(dirLight);
+        }
+
+        function onPointerDown(event) {
+            delta = - delta;
+            //   alert(); 
+        }
+
+        function maakMenu() {
+            let menu = document.getElementById("menu");
+            if (isTouchDevice())
+                menu.innerHTML = leesMenuTekst() + "Funny bird - use fingers to zoom, rotate -";
+            else
+                menu.innerHTML = leesMenuTekst() + "Funny Bird - Leftmousebtn to Rotate / Zoom with mousewheel-";
+
+            kleurActiveLink();
+        }
+        function maakScene() {
+            scene = new THREE.Scene();
+            // scene.background = new THREE.Color(0x999999);
+            //  scene.fog = new THREE.FogExp2(0xd6f1f1, 0.001);
+
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 45, 30 * 1000);
+            camera.position.set(-90, -20, -900);
+            // camera.position.set(-10 * 100, -10 * 200, -900);
+
+            //scene.background = new THREE.Color( 0xefd1b5 );
+            // scene.fog = new THREE.FogExp2(0xefd1b5, 0.00025);     //  kleiner, meer fog.
+        }
+
+        function maakRenderer() {
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            //   renderer.setClearColor(new THREE.Color(0x121212, 1.0));
+            //  renderer.shadowMap.enabled = true;
+            //  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+        }      
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>3D Object Following a path with Threejs. </title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content=" Rob van Cooten. Waalre. ">
+    <meta name="keywords" content="3D models, Threejs, Ceramics">
+    <!--  https://sourceforge.net/projects/three-js.mirror/  -->
+    <meta name="description" content="Showing 3D Objects following a line, using ThreeJS.">
+
+    <link type="text/css" rel="stylesheet" href="css/main.css">
+    <link type="text/css" rel="stylesheet" href="css/menu.css">
+
+    <!-- 
+https://threejs.org/examples/#webgl_modifier_curve 
+-->
+</head>
+
+<body>
+    <div id="menu">
+        <p>Hier komt dynamisch het menu.</p>
+    </div>
+
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+        import { Flow, InstancedFlow } from 'three/addons/modifiers/CurveModifier.js';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+        import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+        import { OrbitControls } from './jsm/controls/OrbitControls.js';
+        import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+
+
+        let modellen = new Array();
+        const pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+        const koppen = [];
+        const clones = [];
+        const bollen = [];
+        const objectsOnCurve = [];
+        let geinVogel, kop, groep;
+
+        let radius = 0.2;  // radius bollen. 
+
+        let spotLightHelper;
+        let spotLight;
+        let lightHolder;
+
+        let richting = +1;
+        let rondeTeller = 0;
+
+        let textMesh;
+        const mess = "Train of Moving Ceramic Heads.";
+
+        let container, menu;
+        let scene, camera, renderer,
+            controls;  // orbitcontroller ;   
+        const curveHandles = [];
+        let curve, line, initialPoints, flow;
+        let target;
+        let koppelen = true;
+
+        let teller = 0;
+
+        init();
+
+        function init() {
+            maakInitialPoints();             
+            maakMenu();
+            maakScene();                   
+
+            maakTekst(mess);  
+            maakBelichting();                        
+            laadModellen(); 
+        
+            leesModellen();
+            laadVogels();
+
+            maakRenderer();            
+            
+            maakCurve();
+
+            window.addEventListener('resize', onWindowResize);
+            startOrbitController();
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+        }   // end init. 
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onPointerDown(event) {
+            controls.enabled = false;
+            richting = -richting;
+            controls.enabled = true;
+        }
+
+        function animate() {
+            if (flow) {
+                flow.moveAlongCurve(richting * 0.01);
+            }
+            lightHolder.quaternion.copy(camera.quaternion);
+            render();
+        }
+
+        function render() {
+            const aantalSteps = 500;  // reverse speed
+
+            if (kop != null && geinVogel != null) {
+                teller = teller + richting * 1;
+
+                koppelGroep();
+
+                const pos = curve.getPointAt(teller / aantalSteps);
+                const tangent = curve.getTangentAt(teller / aantalSteps);
+
+                let afstand = berekenAfstandSpotLightBol(rondeTeller);
+                spotLight.distance = afstand ;
+                // spotLight.target = bollen[rondeTeller];
+             //    spotLight.target.position = initialPoints[rondeTeller].position;
+                spotLight.target.position.x = (initialPoints[rondeTeller].x);
+                spotLight.target.position.y = (initialPoints[rondeTeller].y);
+                spotLight.target.position.z = (initialPoints[rondeTeller].z);
+
+                spotLightHelper.update();
+
+                bewegenRondeTeller(aantalSteps);
+
+                geinVogelUP(teller, aantalSteps);
+
+            }
+            renderer.render(scene, camera);
+        }
+
+        function bewegenRondeTeller(aantalSteps) {
+
+            if (teller == aantalSteps && richting == 1) {
+                rondeTeller++;
+                //    rondeTeller = rondeTeller % 4 ;   
+                if (rondeTeller > 3)
+                    rondeTeller = 0;
+                teller = 0;
+                let d = berekenAfstandSpotLightBol(rondeTeller);
+                console.log("Bereken afstand: " + d);
+            }
+            if (teller == 1 && richting == -1) {
+                rondeTeller--;
+                if (rondeTeller < 0)
+                    rondeTeller = 3;
+
+                teller = aantalSteps;
+            }
+        }
+
+        function berekenAfstandSpotLightBol(nummer) {
+            let a = ( initialPoints[nummer].x - spotLight.position.x);
+            let b = ( initialPoints[nummer].y - spotLight.position.y);
+            let c = ( initialPoints[nummer].z - spotLight.position.z);
+            let d = Math.sqrt(a * a + b * b + c * c);
+            return d;
+        }
+
+        function maakScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x003300);
+
+            camera = new THREE.PerspectiveCamera(
+                40,
+                window.innerWidth / window.innerHeight,
+                1,
+                1000
+            );
+            camera.position.set(0, 0.7, 4);   //(2, 2, 4)
+            camera.lookAt(scene.position);
+        }
+        function maakRenderer() {
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setAnimationLoop(animate);
+            document.body.appendChild(renderer.domElement);
+            //    container.appendChild(renderer.domElement);
+        }
+
+        function maakBelichting() {
+            let intens = 3;
+            const lighta = new THREE.AmbientLight(0x733973, intens);
+            //  scene.add(lighta);
+
+            const lightd = new THREE.DirectionalLight(0xffffff, intens);
+            lightd.position.set(0, 0, 10);
+            scene.add(lightd);
+            maakSpotLight();  
+
+        }
+        function maakSpotLight() {
+            //   alert(); 
+            let intens = 2000;
+            spotLight = new THREE.SpotLight(0xddffdd, intens);
+            spotLight.position.set(0, 10, 5);
+            spotLight.distance = 10;
+            spotLight.angle = Math.PI * 0.003;
+            spotLight.decay = 0;  // default 2!
+
+            spotLightHelper = new THREE.SpotLightHelper(spotLight);
+
+         //   spotLight.target =  initialPoints[0].x;
+         //   spotLightHelper.update();
+         
+            lightHolder = new THREE.Group();
+            lightHolder.add(spotLight);
+            lightHolder.add(spotLightHelper);
+            scene.add(lightHolder);
+
+            scene.add(spotLight);
+            scene.add(spotLightHelper);
+        }
+
+        function maakTekst(mess) {
+            /*
+            if (textMesh != null) {
+                //scene.remove(textMesh);
+                scene.remove(flow.object3D);
+            }   */
+
+            //  alert(mess);
+            const loader = new FontLoader();
+            loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
+
+                const textgeometry = new TextGeometry(mess, {
+                    font: font,
+                    size: 0.2,
+                    depth: 0.15,
+                    curveSegments: 12,
+                    bevelEnabled: true,
+                    bevelThickness: 0.02,
+                    bevelSize: 0.01,
+                    bevelOffset: 0,
+                    bevelSegments: 5,
+                });    // end loader.load
+
+                const textmaterial = new THREE.MeshPhongMaterial({
+                    color: 0x228822,
+                    shininess: 220,    //  standaard 30 
+                    emissive: 0xffffff,   // 'darkgreen' 0x00aa00 
+                    // side: THREE.DoubleSide,                    
+                    specular: 0x00f500,
+                });  // end materiaal
+
+                const materials = [
+                    new THREE.MeshPhongMaterial({ color: 0x00aa00, flatShading: true }), // front
+                    new THREE.MeshPhongMaterial({ color: 0x55aa55 }) // side
+                ];
+
+                textMesh = new THREE.Mesh(textgeometry, materials);
+                textMesh.position.x = -2;
+                textMesh.position.y = -1;
+                textMesh.scale.z = 0.5;
+                scene.add(textMesh);
+            });
+        }  // end maakTekst
+
+        function maakInitialPoints() {
+            initialPoints = [
+                { x: 1, y: 0, z: - 1 },
+                { x: 1, y: 0, z: 1 },
+                { x: - 1, y: 0, z: 1 },
+                { x: - 1, y: 0, z: - 1 },
+            ];
+        }
+
+        function koppelGroep() {
+            const speed = 0.001;   // reverse speed. 
+            objectsOnCurve.forEach((obj) => {
+                obj.t += richting * speed;
+                if (obj.t > 1)
+                    obj.t = 0
+                else if (obj.t < 0)
+                    obj.t = 1;
+
+                const pos = curve.getPointAt(obj.t);
+                //    const tangent = curve.getTangentAt(obj.t);
+                obj.mesh.position.copy(pos);
+            });
+        }
+
+        function geinVogelUP(teller, aantalSteps) {
+            let hoogte = radius;
+
+            //   for (let k = 0; k < 4; k++) {
+            clones[rondeTeller].position.y = hoogte * teller / aantalSteps;
+            //  };
+        }
+
+        function maakCurve() {
+            let k = 0;
+            for (const handlePos of initialPoints) {
+                bollen[k] = maakBol();
+                bollen[k].position.copy(handlePos);
+                curveHandles.push(bollen[k]);
+                scene.add(bollen[k]);
+                k++;
+            }   // einde for loop
+
+            curve = new THREE.CatmullRomCurve3(
+                curveHandles.map((handle) => handle.position)
+            );
+            curve.curveType = 'centripetal';
+            curve.closed = true;
+
+            const points = curve.getPoints(50);
+            line = new THREE.LineLoop(
+                new THREE.BufferGeometry().setFromPoints(points),
+                new THREE.LineBasicMaterial({ color: 0x00ff00 })
+            );
+
+            scene.add(line);
+        }
+
+        function startOrbitController() {
+            controls = new OrbitControls(camera, renderer.domElement);
+
+            controls.addEventListener('change', render);
+
+            controls.minPolarAngle = - Math.PI * 0.35;     // tilt. , x as.            
+            controls.maxPolarAngle = + Math.PI * 0.9;         // Math.PI * 0.6;
+
+            controls.minAzimuthAngle = -Math.PI * 0.25;      // rot y as.
+            controls.maxAzimuthAngle = -Math.PI * 0.45;    //  0.4
+
+            //    controls.enableRotate = false;
+
+            //controls.target.set(0, 10, 0);
+            controls.minDistance = 1.0;
+            controls.maxDistance = 400.0;
+            controls.update();
+        }
+
+        function laadModel(offsetT) {
+            let model = pad + 'bladerKop.glb';
+            const loader = new GLTFLoader();
+
+            loader.load(model, function (gltf) {
+                kop = gltf.scene.children[0];
+                scene.add(kop);
+
+                let s = 0.015; // 0.01;
+                kop.scale.x = kop.scale.y = kop.scale.z = s;
+                objectsOnCurve.push({
+                    mesh: kop,
+                    t: offsetT   // startpositie op de curve
+                });
+
+
+                //    target = kop.getObjectByName("bladerKop");
+                //  alert("target: " + target); 
+                groep = new THREE.Group();
+                groep.add(kop);
+                scene.add(groep);
+
+            },
+                // called while loading is progressing
+                function (xhr) {
+                    ;
+                    // 	console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                // called when loading has errors
+                function (error) {
+                    console.log('O, 0 An error happened during loading');
+                    if (location.hostname == "localhost")
+                        alert('O, 0 An error happened during loading');
+                }
+            );    // einde loader
+        }   // einde laadModel   
+
+        // manager
+        function laadVogels() {
+            // model
+            const loader = new GLTFLoader();
+            let nummer = 0;   // 0..3
+            const model = pad + modellen[nummer] + '.glb';
+            //    alert(">> model is: " + model )
+            console.log("model: " + model);
+
+            //    const model = 'geinVogel1';
+            loader.load(model, function (gltf) {
+
+                gltf.scene.scale.set(0.3, 0.3, 0.3);
+                geinVogel = gltf.scene;
+
+                let s = 0.015;
+                geinVogel.scale.x = geinVogel.scale.y = geinVogel.scale.z = s
+
+                // let hoogte = 0.26 ; 
+
+                for (let k = 0; k < 4; k++) {
+                    clones[k] = geinVogel.clone();
+                    clones[k].position.copy(initialPoints[k]);
+                    //   clones[k].position.y = clones[k].position.y + 0.23;
+                    scene.add(clones[k]);
+                }
+            },
+                // called while loading is progressing
+                function (xhr) {
+                    ;
+                    // 	console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                // called when loading has errors
+                function (error) {
+                    console.log('O, 0 An error happened during loading');
+                    if (location.hostname == "localhost")
+                        alert('O, 0 An error happened during loading');
+                }
+            );    // einde loader
+        }   // einde laadVogels.                                  
+
+
+        function maakBol() {
+            const sphereGeometry = new THREE.SphereGeometry(radius, 16, 32);
+            const sphereMaterial = new THREE.MeshPhongMaterial({
+                color: 0x22a522,
+                shininess: 200,    //  standaard 30 
+                emissive: 0x224422,   // 'darkgreen'
+                specular: 0x004400,
+                transparent : true,
+                opacity: 0.7        //  0  transparent                 
+            });
+        //    let mat = new THREE.MeshPhongMaterial({ color: 0xaaffaa, reflectivity: 0.5 });
+            return new THREE.Mesh(sphereGeometry, sphereMaterial);
+        }
+
+        function leesModellen() {
+            let tel = 0;
+            modellen[tel++] = 'geinVogel1';	  // hoogt LATER 1 op.   
+            modellen[tel++] = 'knolletje';
+            modellen[tel++] = 'noefy';
+            modellen[tel++] = 'koppie';
+        }
+
+        function maakMenu() {
+            let menu = document.getElementById("menu");
+            if (isTouchDevice())
+                menu.innerHTML = leesMenuTekst() + "Rotating Head. Zoom or Touch to reverse moving. ";
+            else
+                menu.innerHTML = leesMenuTekst() + "Rotating Text - Press Mouse Left/Wheel to Tilt/Zoom, Click to reverse moving.";
+
+            kleurActiveLink();
+
+            container = document.createElement('div');
+            document.body.appendChild(container);
+        }
+
+        function laadModellen(){ 
+            laadModel(0.0);
+            laadModel(0.25);
+            laadModel(0.5);
+            laadModel(0.75);
+        }
+
+    </script>
+</body>
+
+</html>
