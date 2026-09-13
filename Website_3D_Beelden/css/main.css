@@ -21,6 +21,12 @@ div#info, div#menu {
 	z-index: 100;
 }
 
+div#menu{
+	background-color: lightgrey;  
+}
+
+}
+
 #container{
     margin: auto;
 /*    margin-top:7% ;    */
