@@ -131,7 +131,7 @@
             kleuren[3] = 0xff00ff;
             kleuren[4] = 0xffffff;
 
-            for (let k = 0; k < 5; k++) {
+            for (let k = 0; k < 3; k++) {
                 let mat = new THREE.MeshPhongMaterial({ color: kleuren[k], shininess: 500, reflectivity: 1.0 });
                 mat = new THREE.MeshStandardMaterial({ color: kleuren[k] });
                 bollen[k] = new THREE.Mesh(sphere, mat);
@@ -157,7 +157,7 @@
                 teller = 0;
             camera.lookAt(scene.position);
             roteerKop();
-            // beweegLights();
+
             beweegBollen();
 
             //    controls.autoRotate = move;
@@ -176,8 +176,8 @@
         }
 
         function beweegBollen() {
-            let w = window.innerWidth;
-            let h = window.innerHeight;
+            let w = window.innerWidth/4;
+            let h = window.innerHeight/4;
             //  console.log("w: " + w) ; 
             z = 1;   // 10 
 
@@ -192,41 +192,6 @@
             bollen[2].position.x = Math.sin(teller * 0.7) * 0.045 * w;
             bollen[2].position.y = Math.cos(teller * 0.3) * 0.05 * h;
             bollen[2].position.z = z + Math.abs(Math.sin(teller * 0.5)) * 1;
-
-            bollen[3].position.x = Math.sin(teller * 0.6) * 0.03 * w;
-            //    bollen[3].position.y = Math.cos(teller * 0.7) * 0.03 * h;
-            bollen[3].position.z = z + Math.abs(Math.sin(teller * 0.5) * 1);
-
-            bollen[4].position.x = - Math.sin(teller * 0.7) * 0.045 * w;
-            bollen[4].position.y = - Math.cos(teller * 0.3) * 0.05 * h;
-            bollen[4].position.z = z + Math.abs(Math.sin(teller * 0.5)) * 1;
-        }
-
-        function beweegLights() {
-            let w = window.innerWidth;
-            let h = window.innerHeight;
-            //  console.log("w: " + w) ; 
-            z = 1;   // 10 
-
-            light[0].position.x = Math.sin(teller * 0.9) * 0.05 * w;
-            // light[0].position.y = Math.cos(teller * 0.5) * 0.005 * h;
-            //   light[0].position.z = z + Math.abs(Math.cos(teller * 0.3) * 1);
-
-            light[1].position.x = Math.cos(teller * 0.8) * 0.05 * w;
-            light[1].position.y = Math.sin(teller * 0.5) * 0.05 * h;
-            light[1].position.z = z + Math.abs(Math.sin(teller * 0.7)) * 2;
-
-            light[2].position.x = Math.sin(teller * 0.7) * 0.045 * w;
-            light[2].position.y = Math.cos(teller * 0.3) * 0.05 * h;
-            light[2].position.z = z + Math.abs(Math.sin(teller * 0.5)) * 1;
-
-            light[3].position.x = Math.sin(teller * 0.6) * 0.03 * w;
-            //    light[3].position.y = Math.cos(teller * 0.7) * 0.03 * h;
-            light[3].position.z = z + Math.abs(Math.sin(teller * 0.5) * 1);
-
-            light[4].position.x = - Math.sin(teller * 0.7) * 0.045 * w;
-            light[4].position.y = - Math.cos(teller * 0.3) * 0.05 * h;
-            light[4].position.z = z + Math.abs(Math.sin(teller * 0.5)) * 1;
         }
 
         function startOrbitController() {
@@ -346,7 +311,7 @@
         }
 
         function maakScene() {
-            const focus = -20;
+            const focus = -60;
             //    camera.position.z = focus;
             // fov: vertical field of view, aspect ratio, near, far. 
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2 * breedte);
@@ -397,6 +362,39 @@
             scene.add(lightHolder);
             //  lightHolder.quaternion.copy(camera.quaternion); // in the animation loop
         }
+
+		function maakBollampen() {			
+			// PointLight( color : Integer, intensity : Float, distance : Number, decay : Float )
+			let diameter = 0.5;
+			let spher0 = new THREE.SphereGeometry(40*diameter, 16, 8);
+			let mat0 = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+			mat0 = new THREE.MeshPhongMaterial({ color: 0xff00ff, shininess: 20, reflectivity: 0.1 });
+			bol0 = new THREE.Mesh(spher0, mat0);
+
+			light[0] = new THREE.PointLight(0xff0040, 1, 50);
+			light[0].add(bol0);
+		//	scene.add(light[0]);
+
+			let spher1 = new THREE.SphereGeometry(diameter, 16, 8);
+			let mat1 = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+			mat1 = new THREE.MeshPhongMaterial({ color: 0xff0000, shininess: 20, reflectivity: 0.1 });
+			bol1 = new THREE.Mesh(spher1, mat1);
+
+			light[1] = new THREE.PointLight(0xff0040, 1, 50);
+			light[1].add(bol1);
+			//	light[1].position.set(-10, 10, -30);
+		//	scene.add(light[1]);
+
+			let spher2 = new THREE.SphereGeometry(diameter, 16, 8);
+			//	mat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+			let mat2 = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 20, reflectivity: 0.1 });
+			bol2 = new THREE.Mesh(spher2, mat2);
+
+			light[2] = new THREE.PointLight(0xff0040, 1, 50);
+			light[2].add(bol2);
+			//	light[2].position.set(-10, 10, 10);
+		//	scene.add(light[2]);
+		}        
 
         function maakEnvMap() {
             let dir = "./images/koppen_ani/";

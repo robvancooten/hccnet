@@ -66,7 +66,7 @@
 
 		let textMesh
 
-		let light1, light2, light3;
+		let blight1, blight2, blight3;
 		let bol1, bol2, bol3;
 		let rot = 0;
 		let move = true;
@@ -99,8 +99,10 @@
 			laadKubus();
 			maakBol();
 
-			maakBelichting();
+			maakBollights() ;
 
+			maakBelichting();
+ 
 			//model
 			laadModel();
 
@@ -132,8 +134,6 @@
 
 				meermin.scale.multiplyScalar(1);  // 50 
 				meermin.position.y = 0;  // -20
-	
-			//	kleurMeermin() ; 
 
 				scene.add(meermin);
 				kleurMeermin();
@@ -151,6 +151,16 @@
 				}
 			);    // einde loader
 		}   // einde laadModel
+
+		function kleurMeermin() {
+			meermin.traverse((o) => {
+				if (o.isMesh) {
+					o.material.emissive = new THREE.Color(0x333333);
+					o.material.metalness = 0.0;  // 0..1
+					o.material.roughness = 0.0;  // 0..1
+				}
+			});
+		}
 
 
 		function is_portrait() {
@@ -274,39 +284,36 @@
 				kleur = blauw;
 
 			mixedkleur.lerpColors(rood, kleur, alfa);
-			//	bolletje.material.color = mixedkleur;
-			//		pointLight.color = mixedkleur;
 
 			bol1.material.color = mixedkleur;
-			light1.color = mixedkleur;
+			blight1.color = mixedkleur;
 
 			mixedkleur = new THREE.Color();
 			mixedkleur.lerpColors(groen, kleur, alfa);
 			bol2.material.color = rood;
-			light2.color = rood;
+			blight2.color = rood;
 
 			mixedkleur = new THREE.Color();
 			mixedkleur.lerpColors(blauw, kleur, alfa);
 			bol3.material.color = mixedkleur;
-			light3.color = mixedkleur;
-
-			//	light1.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: mixedkleur} ) ) );
+			blight3.color = mixedkleur;
 
 			//	stats.update();
 		}
 		function maakRotaties() {
 			rot = rot + 0.02;
-			light1.position.x = -Math.sin(rot * 0.7) * 15;
-			light1.position.y = Math.cos(rot * 0.5) * 10 + 10;
-			light1.position.z = Math.cos(rot * 0.3) * 10 + 20;
+			let straal=10 ; 
+			blight1.position.x = -Math.sin(rot * 0.7) * straal;
+			blight1.position.y = Math.cos(rot * 0.5) * straal + 0;
+			blight1.position.z = Math.cos(rot * 0.3) * straal + 20;
 
-			light2.position.x = Math.sin(rot * 0.7) * 15;
-			light2.position.y = -Math.cos(rot * 0.5) * 15 + 15;
-			light2.position.z = Math.cos(rot * 0.3) * 10 + 20;
+			blight2.position.x = Math.sin(rot * 0.7) * straal;
+			blight2.position.y = -Math.cos(rot * 0.5) * straal + 5;
+			blight2.position.z = Math.cos(rot * 0.3) * straal + 20;
 
-			light3.position.x = Math.sin(rot * 0.7) * 15;
-			light3.position.y = Math.cos(rot * 0.5) * 15 + 15;
-			light3.position.z = Math.cos(rot * 0.3) * 15 + 20;
+			blight3.position.x = Math.sin(rot * 0.7) * straal;
+			blight3.position.y = Math.cos(rot * 0.5) * straal - 5;
+			blight3.position.z = Math.cos(rot * 0.3) * straal + 20;
 
 		}
 
@@ -325,16 +332,6 @@
 			//	renderer.setPixelRatio(Math.min(Math.max(1, window.devicePixelRatio), 2))
 			container.appendChild(renderer.domElement);
 
-		}
-
-		function kleurMeermin() {
-			meermin.traverse((o) => {
-				if (o.isMesh) {
-					o.material.emissive = new THREE.Color(0x333333);
-					o.material.metalness = 0.0;  // 0..1
-					o.material.roughness = 0.0;  // 0..1
-				}
-			});
 		}
 
 		function maakTekst() {
@@ -384,42 +381,46 @@
 			directionalLight.position.set(1, 1, 1);
 			directionalLight.target.position.set(0, 0, 0);
 			scene.add(directionalLight);
+		}
 
-			// bollampen :
+       function maakBollights(){
+					// bollampen :
 			// PointLight( color : Integer, intensity : Float, distance : Number, decay : Float )
 			let diameter = 0.5;
+			let shine= 20; 
+			let reflect = 1.0;
 			let spher1 = new THREE.SphereGeometry(diameter, 16, 8);
 			let mat1 = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-			mat1 = new THREE.MeshPhongMaterial({ color: 0xff0000, shininess: 20, reflectivity: 0.1 });
+			mat1 = new THREE.MeshPhongMaterial({ color: 0xff0040, shininess: shine, reflectivity: reflect });
 			bol1 = new THREE.Mesh(spher1, mat1);
 
-			light1 = new THREE.PointLight(0xff0040, 1, 50);
-			light1.add(bol1);
-			//	light1.position.set(-10, 10, -30);
-			scene.add(light1);
+			blight1 = new THREE.PointLight(0xff0040, 1, 50);
+			blight1.add(bol1);
+			//	blight1.position.set(-10, 10, -30);
+			scene.add(blight1);
 
 			let spher2 = new THREE.SphereGeometry(diameter, 16, 8);
-			//	mat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-			let mat2 = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 20, reflectivity: 0.1 });
+			//	mat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+			let mat2 = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: shine, reflectivity: reflect });
 			bol2 = new THREE.Mesh(spher2, mat2);
 
-			light2 = new THREE.PointLight(0xff0040, 1, 50);
-			light2.add(bol2);
-			//	light2.position.set(-10, 10, 10);
-			scene.add(light2);
+			blight2 = new THREE.PointLight(0xff0040, 1, 50);
+			blight2.add(bol2);
+			//	blight2.position.set(-10, 10, 10);
+			scene.add(blight2);
 
 			let spher3 = new THREE.SphereGeometry(diameter, 16, 8);
-			//	mat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-			let mat3 = new THREE.MeshPhongMaterial({ color: 0x0000ff, shininess: 20, reflectivity: 0.1 });
+			//	mat = new THREE.MeshBasicMaterial({ color: 0xff0040 });
+			let mat3 = new THREE.MeshPhongMaterial({ color: 0x0000ff, shininess: shine, reflectivity: reflect });
 			bol3 = new THREE.Mesh(spher3, mat3);
 
-			light3 = new THREE.PointLight(0xff0040, 1, 50);
-			light3.add(bol3);
-			//		light3.position.set(-10, 10, 10);
-			scene.add(light3);
+			blight3 = new THREE.PointLight(0xff0040, 1, 50);
+			blight3.add(bol3);
+			//		blight3.position.set(-10, 10, 10);
+			scene.add(blight3);
 
+	   }
 
-		}
 		function onPointerDown(event) {
 			move = !move;
 		}

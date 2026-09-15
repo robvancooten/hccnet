@@ -48,7 +48,7 @@
 
         let camera, scene, renderer;
         let kop, clone, groep;
-        let cubeCam, cubeRT ; 
+        let cubeCam, cubeRT;
         let controls;   // touch orbit mouse controls      
         const stats = new Stats();
 
@@ -87,10 +87,10 @@
             maakBelichting();
 
             maakPointLights();
-        //    maakEnvMap();
+            //    maakEnvMap();
             maakRTCube();
-         //       maakSceneEnv() ;
-         //   maakKubus();
+            //       maakSceneEnv() ;
+            //   maakKubus();
             maakTekst();
 
             laadModel();
@@ -120,25 +120,30 @@
             let intensity = 15;
             let distance = breedte / 2;
             let decay = 2;
+            let blights = new Array(5);
 
             // SphereGeometry(radius : Float, widthSegments : Integer, heightSegments :
-            let diameter = 1 * 1.6;   // 2
+            let diameter = 1.6;   // 2
             const sphere = new THREE.SphereGeometry(diameter, 32, 16);  // voor lights.  
 
-            let kl = 0x0000ff;
             let kleuren = [];
             kleuren[0] = 0xff0000;
             kleuren[1] = 0x00ff00;
-            kleuren[2] = 0x0000ff;
+            kleuren[2] = 0x00ffff;
             kleuren[3] = 0xff00ff;
-            kleuren[4] = 0xffffff;
+            kleuren[4] = 0xffff00;
 
+            let mat;
             for (let k = 0; k < 5; k++) {
-                let mat = new THREE.MeshPhongMaterial({ color: kleuren[k], shininess: 500, reflectivity: 1.0 });
-                mat = new THREE.MeshStandardMaterial({ color: kleuren[k] });
+                //  mat = new THREE.MeshPhongMaterial({ color: kleuren[k], shininess: 50, reflectivity: 1.0 });
+                mat = new THREE.MeshStandardMaterial({ color: kleuren[1] });
                 bollen[k] = new THREE.Mesh(sphere, mat);
-                bollen[k].castShadow = true;
+              //  bollen[k].castShadow = true;
                 scene.add(bollen[k]);
+
+                blights[k] = new THREE.PointLight(kleuren[k], 1, 50);
+            //    blights[k].add(bollen[k]);
+                bollen[k].add(blights[k]);
             }
         }
 
@@ -158,8 +163,8 @@
             if (teller > 1000)
                 teller = 0;
             camera.lookAt(scene.position);
-          //  roteerKop();
-            // beweegLights();
+            //  roteerKop();
+
             beweegBollen();
 
             //    controls.autoRotate = move;
@@ -183,8 +188,8 @@
         }
 
         function beweegBollen() {
-            let w = window.innerWidth/4;
-            let h = window.innerHeight/4;
+            let w = window.innerWidth / 4;
+            let h = window.innerHeight / 4;
             //  console.log("w: " + w) ; 
             z = 1;   // 10 
 
@@ -207,33 +212,6 @@
             bollen[4].position.x = - Math.sin(teller * 0.7) * 0.045 * w;
             bollen[4].position.y = - Math.cos(teller * 0.3) * 0.05 * h;
             bollen[4].position.z = z + Math.abs(Math.sin(teller * 0.5)) * 1;
-        }
-
-        function beweegLights() {
-            let w = window.innerWidth;
-            let h = window.innerHeight;
-            //  console.log("w: " + w) ; 
-            z = 1;   // 10 
-
-            light[0].position.x = Math.sin(teller * 0.9) * 0.05 * w;
-            // light[0].position.y = Math.cos(teller * 0.5) * 0.005 * h;
-            //   light[0].position.z = z + Math.abs(Math.cos(teller * 0.3) * 1);
-
-            light[1].position.x = Math.cos(teller * 0.8) * 0.05 * w;
-            light[1].position.y = Math.sin(teller * 0.5) * 0.05 * h;
-            light[1].position.z = z + Math.abs(Math.sin(teller * 0.7)) * 2;
-
-            light[2].position.x = Math.sin(teller * 0.7) * 0.045 * w;
-            light[2].position.y = Math.cos(teller * 0.3) * 0.05 * h;
-            light[2].position.z = z + Math.abs(Math.sin(teller * 0.5)) * 1;
-
-            light[3].position.x = Math.sin(teller * 0.6) * 0.03 * w;
-            //    light[3].position.y = Math.cos(teller * 0.7) * 0.03 * h;
-            light[3].position.z = z + Math.abs(Math.sin(teller * 0.5) * 1);
-
-            light[4].position.x = - Math.sin(teller * 0.7) * 0.045 * w;
-            light[4].position.y = - Math.cos(teller * 0.3) * 0.05 * h;
-            light[4].position.z = z + Math.abs(Math.sin(teller * 0.5)) * 1;
         }
 
         function startOrbitController() {
@@ -287,7 +265,7 @@
                     metalness: 1,
                     roughness: 0,
                     envMap: cubeRT.texture,
-                    side : THREE.DoubleSide
+                    side: THREE.DoubleSide
                 });
 
 
