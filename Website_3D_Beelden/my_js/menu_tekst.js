@@ -24,6 +24,7 @@ function leesMenuTekst() {
             '<li><a href=' + pad + 'spiegel.html?menu_keuze=6&link_nummer=0   title="Mirror with reflections.">Mirror</a></li>' +        
             '<li><a href=' + pad + 'chrome.html?menu_keuze=6&link_nummer=1   title="Chroom look head..">Chrome</a></li>' +
             '<li><a href=' + pad + 'reflection.html?menu_keuze=6&link_nummer=2   title="Reflecting head.">Reflec</a></li>' +            
+            '<li><a href=' + pad + 'phoenix.html?menu_keuze=6&link_nummer=3   title="Head divided in Cubes.">Phoenix</a></li>' +              
             witregel +
             '<li><a href=' + pad + 'fps.html?menu_keuze=5&link_nummer=0        title="Walking along ceramic heads...">back5</a></li>' +
             witregel +            

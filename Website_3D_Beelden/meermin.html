@@ -46,7 +46,7 @@
 		import { FontLoader } from './jsm/loaders/FontLoader.js';
 		import { TextGeometry } from './jsm/geometries/TextGeometry.js';
 
-		let container, menu;
+		let container;
 
 		let camera, cameraOrtho, scene, renderer;
 		let controls;   // touch mouse controls
@@ -427,7 +427,7 @@
 		}
 
 		function maakMenu() {
-
+            let menu ; 
 			menu = document.getElementById("menu");
 			if (isTouchDevice())
 				menu.innerHTML = leesMenuTekst() + "Mermaid Ceramics. Use fingers to rotate, zoom. Touch to stop.";

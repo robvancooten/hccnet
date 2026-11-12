@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Een meermin tonen.</title>
+  <meta charset="utf-8">
+  <!-- 
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		-->
+  <meta name="author" content=" Rob van Cooten. Waalre. ">
+  <!--   http://localhost/www/hccnet/Website_3D_Beelden/meermin.html   -->
+  <meta name="keywords" content="3D models, Threejs, Ceramics">
+  <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+  <link type="text/css" rel="stylesheet" href="css/main.css">
+  <link href="css/menu.css" rel="stylesheet" type="text/css">
+  <link rel="shortcut icon" href="./images/ernie.ico">
+  <style>
+    body {
+      cursor: url(./images/biglips.cur), auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="menu">
+
+  </div>
+
+  <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js" ,
+				"three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.3/build/index.module.js",          
+					"three-bvh-csg": "https://cdn.jsdelivr.net/npm/three-bvh-csg@0.0.16/build/index.module.js"           
+
+				}
+			}
+		</script>
+
+  <script type="module">
+    import {leesMenuTekst, isTouchDevice, kleurActiveLink} from './my_js/menu_tekst.js';
+    import * as THREE from 'three';
+    import {GLTFLoader} from './jsm/loaders/GLTFLoader.js';
+    import {
+      Brush,
+      Evaluator,
+      INTERSECTION,
+    } from 'three-bvh-csg';
+
+    import {OrbitControls} from './jsm/controls/OrbitControls.js';
+    import {FontLoader} from './jsm/loaders/FontLoader.js';
+    import {TextGeometry} from './jsm/geometries/TextGeometry.js';
+
+    let container;
+    let camera, scene, renderer;
+    let kop;
+    const pieces = [];
+    let aantalCubes = 0; // aantalCubes
+    let controls;
+    let teller = 0; let k = 0; let n = 0;
+
+    init();
+
+    function init() {
+      maakScene();
+
+      maakBelichting();
+
+      scene.add(camera);
+
+      maakTekst();
+
+      //model
+      laadModel();
+      //   splitsKop(); 
+      myRenderer();
+      window.addEventListener('resize', onWindowResize);
+      animate();
+      startOrbitController();
+    }   // einde init
+
+    function myRenderer() {
+      //	renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer = new THREE.WebGLRenderer({alpha: true}); // transparant.  
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      document.body.appendChild(renderer.domElement);
+      //  container.appendChild(renderer.domElement);      			
+    }
+
+    function render() {
+      if (kop != null)
+        kop.rotation.y += 0.01;
+
+      while (pieces[k] != null && teller == 0) {
+        scene.add(pieces[k]);
+        teller++;
+        k++;
+      }
+      teller++;
+      if (teller == 10)
+        teller = 0;
+
+      while (pieces[n] != null) {
+        pieces[0].rotation.z += 0.01;
+        n++;
+      }
+      if (n == aantalCubes)
+        n = 0;
+
+
+      renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      render();
+    }
+
+    function maakBelichting() {
+      // let ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      //	scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 8.2); // 20 te veel licht, geen kleur meer.
+      directionalLight.position.set(1, 1, 1);
+      directionalLight.target.position.set(0, 0, 0);
+      scene.add(directionalLight);
+    }
+
+    async function laadModel() {
+      const loader = new GLTFLoader();
+      let pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+      let model = pad + 'bladerKop.glb';
+
+      const gltf = await loader.loadAsync(model);
+
+      kop = gltf.scene;
+      // kop.position.x = -5;
+      //   scene.add(kop);
+      splitsKop();
+
+
+    }
+
+
+    function splitsKop() {
+      const mesh = kop.getObjectByProperty("isMesh", true);
+      if (!mesh) throw new Error("No mesh found")
+      else
+        console.log("OK,  Mesh gevonden");
+
+      mesh.updateWorldMatrix(true, false);
+      //  mesh.position.x = 5;
+      //  scene.add(mesh);
+
+      // Put source geometry in world coordinates so the boxes use the same space.
+      const sourceGeometry = mesh.geometry.clone();
+      sourceGeometry.applyMatrix4(mesh.matrixWorld);
+
+      const sourceBrush = new Brush(sourceGeometry, mesh.material);
+      sourceBrush.updateMatrixWorld(true);
+
+      const bounds = new THREE.Box3().setFromObject(mesh);
+      console.log("bounds.max.x: " + bounds.max.x);
+      console.log("bounds.min.x: " + bounds.min.x);
+      /*
+      console.log("bounds.max.y: " + bounds.max.y);
+      console.log("bounds.min.y: " + bounds.min.y);
+      console.log("bounds.max.z: " + bounds.max.z);
+      console.log("bounds.min.z: " + bounds.min.z);   */
+
+      const evaluator = new Evaluator();
+      let deltaX = 0; let deltaY = 0; let deltaZ = 0;
+      const cellSize = 5;
+      let shift = 1;   // boxes iets gescheiden tonen. 
+
+      for (let x = bounds.min.x; x < bounds.max.x; x += cellSize) {
+        deltaY = deltaZ = 0;
+        deltaX = deltaX + shift;
+        for (let y = bounds.min.y; y < bounds.max.y; y += cellSize) {
+          deltaZ = 0;
+          deltaY = deltaY + shift;
+          for (let z = bounds.min.z; z < bounds.max.z; z += cellSize) {
+            let box = new THREE.Mesh(
+              new THREE.BoxGeometry(cellSize, cellSize, cellSize),
+              new THREE.MeshBasicMaterial()
+            );
+            setPivot();
+
+            
+            deltaZ = deltaZ + shift;
+            box.position.set(x + cellSize / 2 + deltaX, y + cellSize / 2 + deltaY, z + cellSize / 2 + deltaZ);
+            //  box.position.set(x + cellSize / 2, y + cellSize / 2, z + cellSize / 2); 
+            box.updateMatrixWorld(true);
+
+            const boxBrush = new Brush(box.geometry);
+            boxBrush.position.copy(box.position);
+            boxBrush.updateMatrixWorld(true);
+
+            const result = evaluator.evaluate(sourceBrush, boxBrush, INTERSECTION);
+
+            if (result.geometry.getAttribute("position").count > 0) {
+              const piece = new THREE.Mesh(result.geometry, mesh.material);
+              pieces.push(piece);
+              //  console.log("box: " + result.geometry.getAttribute("position").count);
+              aantalCubes++;
+              //   scene.add(piece);
+            }
+            //  else
+            //    console.log("niet goed");
+
+            box.geometry.dispose();
+            box.material.dispose();
+          }  // end for
+        }   // end for
+      }   // end for
+      console.log(">> aantal boxes: " + aantalCubes);
+
+      kop.position.y = -20;
+      const s = 0.5;
+      kop.scale.set(s, s, s);
+      scene.add(kop);
+
+    };   // end splitsKop; 
+
+    function startOrbitController() {
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.addEventListener('change', render);
+      controls.listenToKeyEvents(window);    // pijltjes toetsen.
+      //	controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+      //		controls.dampingFactor = 0.05;
+
+      controls.minPolarAngle = Math.PI * 0.35;     // tilt. , x as.
+      controls.maxPolarAngle = Math.PI * 0.6;
+
+      controls.minAzimuthAngle = -Math.PI * 0.25;      // rot y as.
+      controls.maxAzimuthAngle = +Math.PI * 0.4;
+
+      //controls.target.set(0, 10, 0);
+      controls.minDistance = 20.0;
+      controls.maxDistance = 400.0;
+
+      //	controls.autoRotate = true;
+      //	controls.autoRotateSpeed =2 ; 
+    }
+
+    function maakTekst() {
+      const loader = new FontLoader();
+      let font = undefined,
+        fontName = 'gentilis', // helvetiker, optimer, gentilis, droid sans, droid serif
+        fontWeight = 'normal'; // normal bold
+
+      loader.load('./fonts/helvetiker_regular.typeface.json', function (font) {
+
+        const textGeo = new TextGeometry('Phoenix...', {
+          font: font,
+          size: 4,
+          height: 2.5,
+          curveSegments: 12,
+          bevelEnabled: false,   // true,
+          bevelThickness: 1,  // 10
+          bevelSize: 0.08,    // 8
+          bevelOffset: 0,
+          bevelSegments: 1  // 5
+        });
+
+        textGeo.computeBoundingBox();
+        const centerOffset = - 0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+
+        const materials = [
+          new THREE.MeshPhongMaterial({color: 0xaaaa00, flatShading: true}), // front
+          new THREE.MeshPhongMaterial({color: 0x555500}) // side
+        ];
+
+        let textMesh = new THREE.Mesh(textGeo, materials);
+        textMesh.scale.z = 0.05;
+
+        textMesh.position.x = centerOffset;
+        textMesh.position.y = +30;
+        // 	textMesh.rotation.y = Math.PI * 2;
+        textMesh.rotation.y = Math.PI * 2;
+
+        scene.add(textMesh);
+      });
+    }
+
+    function maakScene() {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+      camera.position.z = 100;
+
+      // scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xaaaaaa);
+    }
+
+  </script>
+
+</body>
+
+</html>
