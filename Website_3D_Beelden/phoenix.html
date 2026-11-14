@@ -55,7 +55,7 @@
     let camera, scene, renderer;
     let kop;
     let groepDuo;
-    const pieces = [];
+    const pieces = []; const pieces2 = [];
     const ringen = [];
     let aantalCubes = 0; // aantalCubes
     let controls;
@@ -89,7 +89,7 @@
       let menu;
 
       menu = document.getElementById("menu");
-      if (isTouchDevice())
+       if ( isTouchDevice() )
         menu.innerHTML = leesMenuTekst() + "Use fingers to rotate, zoom. Touch to stop.";
       else
         menu.innerHTML = leesMenuTekst() + "Use mouse to rotate, start/stop. Wheel to zoom. Or arrow keys 2move. ";
@@ -215,7 +215,6 @@
 
     function splitsKop() {
       for (let k = 0; k < 4; k++) {
-        //  ringen[k] = new THREE.Group();
         ringen.push(new THREE.Group());
       }
       const mesh = kop.getObjectByProperty("isMesh", true);
@@ -246,7 +245,7 @@
       let cellYCenter = (bounds.max.y - bounds.min.y) / (2 * cellSize);
       cellYCenter = Math.floor(cellYCenter);
 
-      let shift = 0;   // 1,  boxes iets gescheiden tonen. 
+      let shift = 2;   // 1,  boxes iets gescheiden tonen. 
       /*****    x      ****/
       for (let x = bounds.min.x; x < bounds.max.x; x += cellSize) {
         cellX++; cellY = cellZ = 0;
@@ -265,23 +264,37 @@
               new THREE.BoxGeometry(cellSize, cellSize, cellSize),
               new THREE.MeshBasicMaterial()
             );
+            let box2 = new THREE.Mesh(
+              new THREE.BoxGeometry(cellSize, cellSize, cellSize),
+              new THREE.MeshBasicMaterial()
+            );            
 
 
-            deltaZ = deltaZ + shift;
+          //  deltaZ = deltaZ + shift;
+
             box.position.set(x + cellSize / 2 + deltaX, y + cellSize / 2 + deltaY, z + cellSize / 2 + deltaZ);
             box.updateMatrixWorld(true);
+
+          //  shift=2; 
+          //  deltaZ = deltaZ + shift;
+            box2.position.set(x + cellSize / 2 + deltaX, y + cellSize / 2 + deltaY, z + cellSize / 2 + deltaZ +4);
+            box2.updateMatrixWorld(true);
             //  box = setPivot(box);
 
             const boxBrush = new Brush(box.geometry);
             boxBrush.position.copy(box.position);
             boxBrush.updateMatrixWorld(true);
 
+            const boxBrush2 = new Brush(box2.geometry);
+            boxBrush2.position.copy(box2.position);
+            boxBrush2.updateMatrixWorld(true);            
+
             const result = evaluator.evaluate(sourceBrush, boxBrush, INTERSECTION);
 
             if (result.geometry.getAttribute("position").count > 0) {
               const piece = new THREE.Mesh(result.geometry, mesh.material);
-
               pieces.push(piece);
+
               if (cellY == cellYCenter) {
                 ringen[0].add(piece);
                 scene.add(ringen[0]);
@@ -291,10 +304,22 @@
 
               aantalCubes++;
             }
+
+            const result2 = evaluator.evaluate(sourceBrush, boxBrush2, INTERSECTION);
+
+            if (result2.geometry.getAttribute("position").count > 0) {
+              const piece2 = new THREE.Mesh(result.geometry, mesh.material);
+              pieces2.push(piece2);
+              piece2.position.y+=20; 
+                scene.add(piece2);
+            }
+
             box.geometry.dispose();
             box.material.dispose();
+            box2.geometry.dispose();
+            box2.material.dispose();            
           }  // end for x
-          //       console.log(">> aantal boxes in x vlak: " + aantalCubes);
+           //      console.log(">> aantal boxes in x vlak: " + aantalCubes);
         }   // end for y
         //  console.log(">> aantal boxes in y vlak: " + aantalCubes);
       }   // end for z

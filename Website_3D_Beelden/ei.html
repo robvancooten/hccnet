@@ -140,7 +140,7 @@
 
         function maakMenu() {
             let menu = document.getElementById("menu");
-            if (isTouchDevice())
+            if ( isTouchDevice() )
                 menu.innerHTML = leesMenuTekst() + "BIRTH. Use fingers to zoom, rotate. ResetButton for rebirth.";
             else
                 menu.innerHTML = leesMenuTekst() + "BIRTH - Zoom with MouseWheel - Rotate with LeftMouse. ResetButton for rebirth.";

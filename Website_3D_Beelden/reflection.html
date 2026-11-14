@@ -303,7 +303,7 @@
         function maakMenu() {
 
             let menu = document.getElementById("menu");
-            if (touchDevice)
+             if ( isTouchDevice() )
                 menu.innerHTML = leesMenuTekst() + " Touch to rotate and tilt.  Press finger to stop/rotate. ";
             else
                 menu.innerHTML = leesMenuTekst() + " Mouse to rotate, Mousewheel to zoom. Press mouse to stop/rotate. ";
