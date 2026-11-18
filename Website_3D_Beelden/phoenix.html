@@ -10,7 +10,8 @@
   <meta name="author" content=" Rob van Cooten. Waalre. ">
   <!--   http://localhost/www/hccnet/Website_3D_Beelden/phoenix.html   -->
   <meta name="keywords" content="3D models, Threejs, Ceramics">
-  <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+  <meta name="description"
+    content="Showing all kinds of ways to show ceramics heads using ThreeJS. Mesh divided in cubes">
   <link type="text/css" rel="stylesheet" href="css/main.css">
   <link href="css/menu.css" rel="stylesheet" type="text/css">
   <link rel="shortcut icon" href="./images/ernie.ico">
@@ -30,7 +31,7 @@
 			{
 				"imports": {
 					"three": "./build/three.module.js" ,
-				"three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.3/build/index.module.js",          
+			  	"three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.3/build/index.module.js",          
 					"three-bvh-csg": "https://cdn.jsdelivr.net/npm/three-bvh-csg@0.0.16/build/index.module.js"           
 
 				}
@@ -58,6 +59,7 @@
     const pieces = []; const pieces2 = [];
     const ringen = [];
     let aantalCubes = 0; // aantalCubes
+
     let controls;
     let mess = "Phoenix........";
     let textMesh = null;
@@ -73,13 +75,18 @@
       maakBelichting();
       maakTekst(mess);
 
-      laadModel();
+      laadModelAsync();
 
-      myRenderer();
+      myRenderer
+        ();
       window.addEventListener('resize', onWindowResize);
       document.body.addEventListener("pointerdown", beweegReverse, false);
       function beweegReverse() {
-        richting = -1 * richting;
+        if (richting === 1)
+          richting = 0;
+        else
+          richting = 1;
+
       }
       animate();
       startOrbitController();
@@ -90,7 +97,7 @@
 
       menu = document.getElementById("menu");
       if (isTouchDevice())
-        menu.innerHTML = leesMenuTekst() + "Use fingers to rotate, zoom. Touch to stop.";
+        menu.innerHTML = leesMenuTekst() + "Use fingers to rotate, zoom. Touch to start/stop.";
       else
         menu.innerHTML = leesMenuTekst() + "Use mouse to rotate, start/stop. Wheel to zoom. Or arrow keys 2move. ";
 
@@ -113,28 +120,27 @@
       if (groepDuo != null)
         groepDuo.rotation.y += 0.02 * richting;
 
-      if (ringen[ringNummer] != null)  
-    {
-        
+      if (ringen[ringNummer] != null) {
+
 
         if (ringen[ringNummer].rotation.y > 1.3)
           rot = -1;
         if (ringen[ringNummer].rotation.y < -1.3)
-           rot=+1; 
- 
-         //  ringen[ringNummer].rotation.y =  (parseFloat(ringen[ringNummer].rotation.y).toFixed(2)); 
+          rot = +1;
 
-          if (ringen[ringNummer].rotation.y < 0.1 && ringen[ringNummer].rotation.y > -0.1  && rot == 1) {
-            ringNummer++;
+        //  ringen[ringNummer].rotation.y =  (parseFloat(ringen[ringNummer].rotation.y).toFixed(2)); 
 
-            if (ringNummer == ringen.length)
-              ringNummer = 1;
+        if (ringen[ringNummer].rotation.y < 0.1 && ringen[ringNummer].rotation.y > -0.1 && rot == 1) {
+          ringNummer++;
 
-            ringen[ringNummer].rotation.y +=  (Math.PI * 0.02 * rot); 
-          }
+          if (ringNummer == ringen.length)
+            ringNummer = 1;
+
+          ringen[ringNummer].rotation.y += (Math.PI * 0.02 * rot);
+        }
         //  ringNummer = 1 ; 
-        ringen[ringNummer].rotation.y +=   (Math.PI * 0.02 * rot);
-      //  ringen[ringNummer].rotation.y = (ringen[ringNummer].rotation.y).toFixed(2);     
+        ringen[ringNummer].rotation.y += (Math.PI * 0.02 * rot * richting);
+        //  ringen[ringNummer].rotation.y = (ringen[ringNummer].rotation.y).toFixed(2);     
 
         renderer.render(scene, camera);
       }
@@ -152,52 +158,21 @@
     }
 
     function maakBelichting() {
+      let intensity = 5;
       let ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-      scene.add(ambientLight);
+      //  scene.add(ambientLight);
 
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 8.2); // 20 te veel licht, geen kleur meer.
-      directionalLight.position.set(1, 1, 1);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, intensity); // 20 te veel licht, geen kleur meer.
+      directionalLight.position.set(0, 1, 1);
       directionalLight.target.position.set(0, 0, 0);
       scene.add(directionalLight);
-      const directionalLight2 = new THREE.DirectionalLight(0xffffff, 8.2); // 20 te veel licht, geen kleur meer.
+      const directionalLight2 = new THREE.DirectionalLight(0xffffff, intensity); // 20 te veel licht, geen kleur meer.
       directionalLight2.position.set(-1, 1, 1);
       directionalLight2.target.position.set(0, 0, 0);
-      scene.add(directionalLight2);
+    //  scene.add(directionalLight2);
     }
 
-    function laadModel() {
-      let pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
-      let model = pad + 'bladerKop.glb';
-      //  console.log("model: " + model)
-
-      const loader = new GLTFLoader();
-      loader.load(model, function (gltf) {
-        kop = gltf.scene.children[0];
-        kop.scale.multiplyScalar(1);  // 50 
-        kop.rotation.z = 0.5;  //  *Math(PI); 
-
-        splitsKop();
-        toonKop();
-      },
-        // called while loading is progressing
-        function (xhr) {
-          let procent = (xhr.loaded / xhr.total * 100).toFixed(2);
-          procent = Math.floor(procent);
-          //    console.log((procent) + '% loaded');
-          //   mess = "Phoenix." + procent;
-          //  if (procent > 90 && procent < 100)
-          //    maakTekst(mess);
-        },
-        // called when loading has errors
-        function (error) {
-          console.log('O, 0 An error happened during loading');
-          if (location.hostname === "localhost")
-            alert('O, 0 An error happened during loading');
-        }
-      );    // einde loader
-    }   // einde laadModel   
-
-    async function laadModelSlow() {
+    async function laadModelAsync() {
       const loader = new GLTFLoader();
       let pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
       let model = pad + 'bladerKop.glb';
@@ -205,9 +180,14 @@
       const gltf = await loader.loadAsync(model);
 
       kop = gltf.scene;
+      kop = gltf.scene.children[0];
+      //  kop.scale.multiplyScalar(1);  // 50 
+      kop.rotation.z = 0.5;  //  *Math(PI); 
 
-      //  splitsKop();
-      //   toonKop();
+      splitsKop();
+      toonKop();
+
+
     }
 
     function toonKop() {
@@ -222,7 +202,7 @@
       groepDuo = new THREE.Group();
       groepDuo.add(clone);
       groepDuo.add(kop);
-      groepDuo.position.y = -20;
+      groepDuo.position.y = -30;
       //   scene.add(kop);
       scene.add(groepDuo);
 
@@ -232,11 +212,12 @@
       for (let k = 0; k < 8; k++) {
         ringen.push(new THREE.Group());
       }
+      kop.position.y = 0;
       const mesh = kop.getObjectByProperty("isMesh", true);
 
       if (!mesh) throw new Error("No mesh found")
-      else
-        console.log("OK,  Mesh gevonden");
+      //  else
+      //  console.log("OK,  Mesh gevonden");
 
       mesh.updateWorldMatrix(true, false);
 
@@ -250,28 +231,30 @@
 
 
       const bounds = new THREE.Box3().setFromObject(mesh);
-      console.log("bounds.max.x: " + bounds.max.x);
-      console.log("bounds.min.x: " + bounds.min.x);
+      console.log("bounds.max.x: " + bounds.max.x.toFixed(2));
+      console.log("bounds.min.x: " + bounds.min.x.toFixed(2));
 
       const evaluator = new Evaluator();
 
       let deltaX = -1; let deltaY = -1; let deltaZ = -1;
       const cellSize = 2;
-      let cellX = 0; let cellY = 0; let cellZ = 0;
+      let cellX = -1; let cellY = -1; let cellZ = -1;
       let cellYCenter = (bounds.max.y - bounds.min.y) / (2 * cellSize);
-      cellYCenter = Math.floor(cellYCenter );
+      cellYCenter = Math.floor(cellYCenter);
 
-      let shift = 0.5;   // 2,  boxes iets gescheiden tonen. 
+      let shift = 0.5;   // 0.1, 2,  boxes iets gescheiden tonen. 
       /*****    x      ****/
       for (let x = bounds.min.x; x < bounds.max.x; x += cellSize) {
-        cellX++; cellY = cellZ = 0;
+        cellX++;
+        cellY = cellZ = -1;
         //  console.log("cellX " + cellX);
-        deltaY = deltaZ = 0;
+        deltaY = deltaZ = -1;
         deltaX = deltaX + shift;
         /*****    y      ****/
         for (let y = bounds.min.y; y < bounds.max.y; y += cellSize) {
           cellY++;
-          deltaZ = 0;
+          cellZ = -1;
+          deltaZ = -1;
           deltaY = deltaY + shift;
           /*****    z      ****/
           for (let z = bounds.min.z; z < bounds.max.z; z += cellSize) {
@@ -281,24 +264,41 @@
               new THREE.MeshBasicMaterial()
             );
 
-            box.position.set(x + cellSize / 2 + deltaX, y + cellSize / 2 + deltaY, z + cellSize / 2 + deltaZ);
+            box.position.set(x + cellSize / 2, y + cellSize / 2, z + cellSize / 2 + deltaZ);
             box.updateMatrixWorld(true);
+            let boxClone = box.clone();
+            boxClone.position.set(x + cellSize / 2 + deltaX, y + cellSize / 2 + deltaY, z + cellSize / 2 + deltaZ);
 
             const boxBrush = new Brush(box.geometry);
             boxBrush.position.copy(box.position);
             boxBrush.updateMatrixWorld(true);
 
+            const boxCloneBrush = new Brush(boxClone.geometry);
+            boxCloneBrush.position.copy(boxClone.position);
+            boxCloneBrush.updateMatrixWorld(true);
+
             const result = evaluator.evaluate(sourceBrush, boxBrush, INTERSECTION);
 
             if (result.geometry.getAttribute("position").count > 0) {
               const piece = new THREE.Mesh(result.geometry, mesh.material);
-              pieces.push(piece);
 
-             // console.log("cellY: " + cellY);
+              // console.log("cellY: " + cellY);
 
               if (cellY < 8) {
-                ringen[cellY].add(piece); 
-                scene.add(ringen[cellY]);
+                if ((cellY == 6 && cellX > 1) || (cellY != 6))  // in cellY==6 zitten twee corrupte cellen.
+                {
+                  piece.position.y = piece.position.y - 15
+                  ringen[cellY].add(piece);
+                  scene.add(ringen[cellY]);
+                }
+
+                const resultClone = evaluator.evaluate(sourceBrush, boxCloneBrush, INTERSECTION);
+
+                if (resultClone.geometry.getAttribute("position").count > 0) {
+                  const pieceClone = new THREE.Mesh(resultClone.geometry, mesh.material);
+                  pieceClone.position.y = pieceClone.position.y + 10
+                  scene.add(pieceClone);
+                }
               }
 
               aantalCubes++;
@@ -317,28 +317,6 @@
 
     };   // end splitsKop; 
 
-    function setPivot(b) {
-      let box = b;
-      //     const box = new THREE.Mesh(geometry, material);
-
-      // Compute the bounding box to find the true center
-      const box3 = new THREE.Box3().setFromObject(box);
-      const center = box3.getCenter(new THREE.Vector3());
-
-      // Create a pivot group at the mesh's center
-      const pivot = new THREE.Group();
-      pivot.position.copy(center);
-      scene.add(pivot);
-
-      // Offset the mesh inside the pivot
-      box.position.sub(center);
-      pivot.add(box);
-
-      // In your animation loop, rotate the pivot instead of the mesh:
-      pivot.rotation.y += 0.01;
-      pivot.position.x = 20;
-      return box;
-    }
 
     function startOrbitController() {
       controls = new OrbitControls(camera, renderer.domElement);
@@ -411,11 +389,11 @@
       document.body.appendChild(container);
 
       camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
-      camera.position.z = 100;
+      camera.position.z = 120;
 
       // scene
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xaaaaaa);
+      scene.background = new THREE.Color(0x999999);
 
       scene.add(camera);
     }

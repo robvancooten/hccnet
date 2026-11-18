@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Dividing Head in Cubes.</title>
+  <meta charset="utf-8">
+  <!-- 
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		-->
+  <meta name="author" content=" Rob van Cooten. Waalre. ">
+  <!--   http://localhost/www/hccnet/Website_3D_Beelden/phoenix.html   -->
+  <meta name="keywords" content="3D models, Threejs, Ceramics">
+  <meta name="description" content="Showing all kinds of ways to show ceramics heads using ThreeJS.">
+  <link type="text/css" rel="stylesheet" href="css/main.css">
+  <link href="css/menu.css" rel="stylesheet" type="text/css">
+  <link rel="shortcut icon" href="./images/ernie.ico">
+  <style>
+    body {
+      cursor: url(./images/biglips.cur), auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="menu">
+
+  </div>
+
+  <script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js" ,
+				"three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.3/build/index.module.js",          
+					"three-bvh-csg": "https://cdn.jsdelivr.net/npm/three-bvh-csg@0.0.16/build/index.module.js"           
+
+				}
+			}
+		</script>
+
+  <script type="module">
+    import { leesMenuTekst, isTouchDevice, kleurActiveLink } from './my_js/menu_tekst.js';
+    import * as THREE from 'three';
+    import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+    import {
+      Brush,
+      Evaluator,
+      INTERSECTION,
+    } from 'three-bvh-csg';
+
+    import { OrbitControls } from './jsm/controls/OrbitControls.js';
+    import { FontLoader } from './jsm/loaders/FontLoader.js';
+    import { TextGeometry } from './jsm/geometries/TextGeometry.js';
+
+    let container;
+    let camera, scene, renderer;
+    let kop;
+    let groepDuo;
+    const pieces = []; const pieces2 = [];
+    const ringen = [];
+    let aantalCubes = 0; // aantalCubes
+    const vertex = new THREE.Vector3();
+    const vertices = [];
+
+    let controls;
+    let mess = "Phoenix........";
+    let textMesh = null;
+    let k = 0; let n = 0;
+    let richting = 1;
+    let rot = 1; let ringNummer = 1;
+
+    init();
+
+    function init() {
+      maakMenu();
+      maakScene();
+      maakBelichting();
+      maakTekst(mess);
+
+      // laadModel();
+      laadModelSlow();
+
+      myRenderer();
+      window.addEventListener('resize', onWindowResize);
+      document.body.addEventListener("pointerdown", beweegReverse, false);
+      function beweegReverse() {
+        richting = -1 * richting;
+      }
+      animate();
+      startOrbitController();
+    }   // einde init
+
+    function maakMenu() {
+      let menu;
+
+      menu = document.getElementById("menu");
+      if (isTouchDevice())
+        menu.innerHTML = leesMenuTekst() + "Use fingers to rotate, zoom. Touch to stop.";
+      else
+        menu.innerHTML = leesMenuTekst() + "Use mouse to rotate, start/stop. Wheel to zoom. Or arrow keys 2move. ";
+
+      kleurActiveLink();
+
+      //	container = document.createElement('div');
+      //	document.body.appendChild(container);
+    }
+
+    function myRenderer() {
+      //	renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer = new THREE.WebGLRenderer({ alpha: true }); // transparant.  
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      document.body.appendChild(renderer.domElement);
+      //  container.appendChild(renderer.domElement);      			
+    }
+
+    function render() {
+      if (groepDuo != null)
+        groepDuo.rotation.y += 0.02 * richting;
+
+      if (ringen[ringNummer] != null) {
+
+
+        if (ringen[ringNummer].rotation.y > 1.3)
+          rot = -1;
+        if (ringen[ringNummer].rotation.y < -1.3)
+          rot = +1;
+
+        //  ringen[ringNummer].rotation.y =  (parseFloat(ringen[ringNummer].rotation.y).toFixed(2)); 
+
+        if (ringen[ringNummer].rotation.y < 0.1 && ringen[ringNummer].rotation.y > -0.1 && rot == 1) {
+          ringNummer++;
+
+          if (ringNummer == ringen.length)
+            ringNummer = 1;
+
+          ringen[ringNummer].rotation.y += (Math.PI * 0.02 * rot);
+        }
+        //  ringNummer = 1 ; 
+        ringen[ringNummer].rotation.y += (Math.PI * 0.02 * rot);
+        //  ringen[ringNummer].rotation.y = (ringen[ringNummer].rotation.y).toFixed(2);     
+
+        renderer.render(scene, camera);
+      }
+    }  // end render(); 
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      render();
+    }
+
+    function maakBelichting() {
+      let ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 8.2); // 20 te veel licht, geen kleur meer.
+      directionalLight.position.set(1, 1, 1);
+      directionalLight.target.position.set(0, 0, 0);
+      scene.add(directionalLight);
+      const directionalLight2 = new THREE.DirectionalLight(0xffffff, 8.2); // 20 te veel licht, geen kleur meer.
+      directionalLight2.position.set(-1, 1, 1);
+      directionalLight2.target.position.set(0, 0, 0);
+      scene.add(directionalLight2);
+    }
+
+    function laadModel() {
+      let pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+      let model = pad + 'bladerKop.glb';
+      //  console.log("model: " + model)
+
+      const loader = new GLTFLoader();
+      loader.load(model, function (gltf) {
+        kop = gltf.scene.children[0];
+        toonKop(); kop.scale.multiplyScalar(1);  // 50 
+        kop.rotation.z = 0.5;  //  *Math(PI); 
+
+        splitsKop();
+        toonKop();
+      },
+        // called while loading is progressing
+        function (xhr) {
+          let procent = (xhr.loaded / xhr.total * 100).toFixed(2);
+          procent = Math.floor(procent);
+          //    console.log((procent) + '% loaded');
+          //   mess = "Phoenix." + procent;
+          //  if (procent > 90 && procent < 100)
+          //    maakTekst(mess);
+        },
+        // called when loading has errors
+        function (error) {
+          console.log('O, 0 An error happened during loading');
+          if (location.hostname === "localhost")
+            alert('O, 0 An error happened during loading');
+        }
+      );    // einde loader
+    }   // einde laadModel   
+
+    async function laadModelSlow() {
+      const loader = new GLTFLoader();
+      let pad = "https://cdn.jsdelivr.net/gh/robvancooten/glb/";
+      let model = pad + 'bladerKop.glb';
+
+      const gltf = await loader.loadAsync(model);
+
+      kop = gltf.scene;
+      kop = gltf.scene.children[0];
+      //  kop.scale.multiplyScalar(1);  // 50 
+      kop.rotation.z = 0.5;  //  *Math(PI); 
+
+      splitsKop();
+      toonKop();
+
+
+    }
+
+    function toonKop() {
+      const s = 0.5;
+      kop.scale.set(s, s, s);
+
+      let clone = kop.clone();
+      clone.rotation.z = Math.PI;  // let op rotatie clone vreemd.
+
+      //  clone.position.z = -1;
+
+      groepDuo = new THREE.Group();
+      groepDuo.add(clone);
+      groepDuo.add(kop);
+      groepDuo.position.y = -20;
+      //   scene.add(kop);
+      scene.add(groepDuo);
+
+    }
+
+    function splitsKop() {
+      for (let k = 0; k < 8; k++) {
+        ringen.push(new THREE.Group());
+      }
+      kop.position.y = 0;
+      const mesh = kop.getObjectByProperty("isMesh", true);
+
+      if (!mesh) throw new Error("No mesh found")
+      //  else
+      //  console.log("OK,  Mesh gevonden");
+
+      mesh.updateWorldMatrix(true, false);
+
+      // Put source geometry in world coordinates so the boxes use the same space.
+      const sourceGeometry = mesh.geometry.clone();
+      sourceGeometry.applyMatrix4(mesh.matrixWorld);
+
+      const sourceBrush = new Brush(sourceGeometry, mesh.material);
+      sourceBrush.updateMatrixWorld(true);
+
+
+
+      const bounds = new THREE.Box3().setFromObject(mesh);
+      console.log("bounds.max.x: " + bounds.max.x.toFixed(2));
+      console.log("bounds.min.x: " + bounds.min.x.toFixed(2));
+
+      const evaluator = new Evaluator();
+
+      let deltaX = -1; let deltaY = -1; let deltaZ = -1;
+      const cellSize = 2;
+      let cellX = -1; let cellY = -1; let cellZ = -1;
+      let cellYCenter = (bounds.max.y - bounds.min.y) / (2 * cellSize);
+      cellYCenter = Math.floor(cellYCenter);
+
+      let shift = 0.1;   // 2,  boxes iets gescheiden tonen. 
+      /*****    x      ****/
+      for (let x = bounds.min.x; x < bounds.max.x; x += cellSize) {
+        cellX++;
+        cellY = cellZ = -1;
+        //  console.log("cellX " + cellX);
+        deltaY = deltaZ = -1;
+        deltaX = deltaX + shift;
+        /*****    y      ****/
+        for (let y = bounds.min.y; y < bounds.max.y; y += cellSize) {
+          cellY++;
+          cellZ = -1;
+          deltaZ = -1;
+          deltaY = deltaY + shift;
+          /*****    z      ****/
+          for (let z = bounds.min.z; z < bounds.max.z; z += cellSize) {
+            cellZ++;
+            let box = new THREE.Mesh(
+              new THREE.BoxGeometry(cellSize, cellSize, cellSize),
+              new THREE.MeshBasicMaterial()
+            );
+
+            box.position.set(x + cellSize / 2 + deltaX, y + cellSize / 2 + deltaY, z + cellSize / 2 + deltaZ);
+            box.updateMatrixWorld(true);
+            let boxClone=box.clone(); 
+            boxClone.position.set(x + cellSize / 2 + deltaX, y + cellSize / 2 + deltaY +1, z + cellSize / 2 + deltaZ);            
+
+            vertex.copy(boxClone.position);
+            vertices.push(vertex);
+
+            const boxBrush = new Brush(box.geometry);
+            boxBrush.position.copy(box.position);
+            boxBrush.updateMatrixWorld(true);
+
+            const result = evaluator.evaluate(sourceBrush, boxBrush, INTERSECTION);
+
+            if (result.geometry.getAttribute("position").count > 0) {
+              const piece = new THREE.Mesh(result.geometry, mesh.material);
+
+            //  pieces.push(piece.clone());
+              pieces.push(boxClone.clone());
+              for (let k = 0; k < pieces.length; k++) {
+                scene.add(pieces[k]);
+                pieces[k].position.set(vertices[k].x, vertices[k].y+shift*10, vertices[k].z) ;
+                pieces[k].position.y += -25;
+              }
+
+              // console.log("cellY: " + cellY);
+
+              if (cellY < 8) {
+                if ((cellY==6 && cellX>1) || (cellY!=6 ))  // in cellY==6 zitten twee corrupte cellen.
+                ringen[cellY].add(piece);
+                scene.add(ringen[cellY]);
+              }
+
+              aantalCubes++;
+            }
+
+            box.geometry.dispose();
+            box.material.dispose();
+          }  // end for x
+          //      console.log(">> aantal boxes in x vlak: " + aantalCubes);
+        }   // end for y
+        //  console.log(">> aantal boxes in y vlak: " + aantalCubes);
+      }   // end for z
+      console.log(">> aantal boxes: " + aantalCubes);
+      console.log(">> cellYCenter: " + cellYCenter);
+
+
+    };   // end splitsKop; 
+
+    function setPivot(b) {
+      let box = b;
+      //     const box = new THREE.Mesh(geometry, material);
+
+      // Compute the bounding box to find the true center
+      const box3 = new THREE.Box3().setFromObject(box);
+      const center = box3.getCenter(new THREE.Vector3());
+
+      // Create a pivot group at the mesh's center
+      const pivot = new THREE.Group();
+      pivot.position.copy(center);
+      scene.add(pivot);
+
+      // Offset the mesh inside the pivot
+      box.position.sub(center);
+      pivot.add(box);
+
+      // In your animation loop, rotate the pivot instead of the mesh:
+      pivot.rotation.y += 0.01;
+      pivot.position.x = 20;
+      return box;
+    }
+
+    function startOrbitController() {
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.addEventListener('change', render);
+      controls.listenToKeyEvents(window);    // pijltjes toetsen.
+      //	controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+      //		controls.dampingFactor = 0.05;
+
+      controls.minPolarAngle = Math.PI * 0.35;     // tilt. , x as.
+      controls.maxPolarAngle = Math.PI * 0.6;
+
+      controls.minAzimuthAngle = -Math.PI * 100 * 0.25;      // rot y as.
+      controls.maxAzimuthAngle = +Math.PI * 100 * 0.4;
+
+      //controls.target.set(0, 10, 0);
+      controls.minDistance = 20.0;
+      controls.maxDistance = 400.0;
+
+      //	controls.autoRotate = true;
+      //	controls.autoRotateSpeed =2 ; 
+    }
+
+    function maakTekst(mess) {
+      if (textMesh != null) {
+        scene.remove(textMesh);
+      }
+      scene.remove(textMesh);
+
+      const loader = new FontLoader();
+      let font = undefined,
+        fontName = 'gentilis', // helvetiker, optimer, gentilis, droid sans, droid serif
+        fontWeight = 'normal'; // normal bold
+
+      loader.load('./fonts/helvetiker_regular.typeface.json', function (font) {
+
+        const textGeo = new TextGeometry(mess, {
+          font: font,
+          size: 4,
+          height: 2.5,
+          curveSegments: 12,
+          bevelEnabled: false,   // true,
+          bevelThickness: 1,  // 10
+          bevelSize: 0.08,    // 8
+          bevelOffset: 0,
+          bevelSegments: 1  // 5
+        });
+
+        textGeo.computeBoundingBox();
+        const centerOffset = - 0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x);
+
+        const materials = [
+          new THREE.MeshPhongMaterial({ color: 0xaaaa00, flatShading: true }), // front
+          new THREE.MeshPhongMaterial({ color: 0x555500 }) // side
+        ];
+
+        textMesh = new THREE.Mesh(textGeo, materials);
+        textMesh.scale.z = 0.05;
+
+        textMesh.position.x = centerOffset;
+        textMesh.position.y = +30;
+        // 	textMesh.rotation.y = Math.PI * 2;
+        textMesh.rotation.y = Math.PI * 2;
+
+        scene.add(textMesh);
+      });
+    }
+
+    function maakScene() {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+      camera.position.z = 100;
+
+      // scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xaaaaaa);
+
+      scene.add(camera);
+    }
+
+  </script>
+
+</body>
+
+</html>
