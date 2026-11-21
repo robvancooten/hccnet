@@ -179,15 +179,12 @@
 
       const gltf = await loader.loadAsync(model);
 
-      kop = gltf.scene;
       kop = gltf.scene.children[0];
       //  kop.scale.multiplyScalar(1);  // 50 
       kop.rotation.z = 0.5;  //  *Math(PI); 
 
       splitsKop();
       toonKop();
-
-
     }
 
     function toonKop() {
