@@ -40,6 +40,9 @@ maakScene()
 
 CSS: 
             touch-action: none;
+        .touch-none {
+        touch-action: none;
+    }
 
 
 
